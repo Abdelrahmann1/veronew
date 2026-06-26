@@ -43,6 +43,17 @@
 .dash-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .dash-tab { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; font-family: var(--font-body); font-size: 13px; cursor: pointer; color: var(--ink); }
 .dash-tab.is-active { background: var(--ink-deep); color: #fff; border-color: var(--ink-deep); }
+.dash-tab__count { display: inline-block; margin-left: 5px; font-family: var(--font-mono); font-size: 11px; opacity: .55; }
+
+/* Search / toolbar */
+.dash-toolbar { margin-bottom: 16px; }
+.dash-search { width: 100%; max-width: 360px; font-family: var(--font-body); font-size: 14px; padding: 11px 14px; border: 1px solid var(--field); border-radius: 12px; background: #fff; color: var(--ink); }
+.dash-search:focus { outline: none; border-color: var(--ink); }
+
+/* Clickable client rows + per-client drill-down */
+.dash-table tr.is-clickable { cursor: pointer; }
+.client-detail-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.client-detail-name { font-family: var(--font-display); font-weight: 500; font-size: 22px; letter-spacing: -.4px; color: var(--ink); }
 
 .dash-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; overflow: hidden; }
 .dash-scroll { overflow-x: auto; }
@@ -58,6 +69,8 @@
 .pill-new       { background: #fde9d9; color: #9a4b16; }
 .pill-contacted { background: #e4eede; color: #3f6b2e; }
 .pill-closed    { background: #ececec; color: #666; }
+.pill-paid      { background: #dcefe0; color: #256b3c; }
+.pill-refunded  { background: #f3e2c8; color: #8a5a16; }
 .dash-link { color: var(--vero-coral); text-decoration: none; }
 .dash-link:hover { text-decoration: underline; }
 

@@ -359,6 +359,7 @@
 
   /* ---------- Auth (clients + admin) ---------- */
   var authUser = null;
+  var authIsAdmin = false;   // mirrors the server-side is_admin() result for UI only
   var authMode = 'signin';
   var pendingAction = null;   // runs after a logged-out user signs up/in via a gated action
 
@@ -372,9 +373,8 @@
   function renderAuthSlot() {
     var slot = el('auth-slot'); if (!slot) return;
     if (authUser) {
-      var admin = B() && B().isAdminUser(authUser);
-      var link = admin ? '<a class="navlink" href="dashboard.html">Dashboard</a>'
-                       : '<a class="navlink" href="account.html">My account</a>';
+      var link = authIsAdmin ? '<a class="navlink" href="dashboard.html">Dashboard</a>'
+                             : '<a class="navlink" href="account.html">My account</a>';
       slot.innerHTML = link + '<button class="navlink" data-signout>Sign out</button>';
     } else {
       slot.innerHTML = '<button class="navlink" data-auth-open="signin">Sign in</button>' +
@@ -389,7 +389,10 @@
   }
 
   async function refreshAuth() {
-    if (B() && B().configured) authUser = await B().currentUser();
+    if (B() && B().configured) {
+      authUser = await B().currentUser();
+      authIsAdmin = authUser ? await B().isAdmin() : false;
+    }
     renderAuthSlot();
     prefillFromUser();
   }
@@ -435,8 +438,9 @@
         return;
       }
       authUser = r.user || (B() ? await B().currentUser() : null);
+      authIsAdmin = !!r.isAdmin;   // r.isAdmin came from the server is_admin() check
       renderAuthSlot(); prefillFromUser();
-      if (B() && B().isAdminUser(authUser)) { window.location.href = 'dashboard.html'; return; }
+      if (authIsAdmin) { window.location.href = 'dashboard.html'; return; }
       closeAuth();
       if (pendingAction) { var act = pendingAction; pendingAction = null; act(); }
       else showToast('Signed in — welcome.');
@@ -462,7 +466,7 @@
     if (e.target.closest('[data-auth-close]')) { closeAuth(); return; }
     if (e.target.closest('[data-auth-toggle]')) { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); return; }
     if (e.target.closest('[data-toast-close]')) { var t = el('pay-toast'); if (t) t.hidden = true; return; }
-    if (e.target.closest('[data-signout]')) { if (B()) B().signOut(); authUser = null; renderAuthSlot(); showToast('Signed out.'); return; }
+    if (e.target.closest('[data-signout]')) { if (B()) B().signOut(); authUser = null; authIsAdmin = false; renderAuthSlot(); showToast('Signed out.'); return; }
     var pay = e.target.closest('[data-checkout]');
     if (pay) { var plan = pay.getAttribute('data-checkout'); requireAuthThen(function () { handleCheckout(plan, pay); }); return; }
     var navBtn = e.target.closest('[data-nav]');
@@ -505,7 +509,7 @@
     initParams();
     renderAuthSlot();
     if (B() && B().configured) {
-      B().onAuthChange(function (u) { authUser = u; renderAuthSlot(); prefillFromUser(); });
+      B().onAuthChange(async function (u) { authUser = u; authIsAdmin = u ? await B().isAdmin() : false; renderAuthSlot(); prefillFromUser(); });
       refreshAuth();
     }
     go('home');

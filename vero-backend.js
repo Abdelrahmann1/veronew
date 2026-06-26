@@ -82,14 +82,32 @@
     }
   }
 
-  /* ---------- Auth (clients + admin) ---------- */
-  function isAdminUser(u) { return !!(u && u.email === cfg.ADMIN_EMAIL); }
+  /* ---------- Auth (clients + admin) ----------
+     Admin status is decided by the DATABASE, never the browser. The
+     is_admin() SQL function checks the signed-in user's email (taken from
+     their verified JWT) against the public.admins table. The browser cannot
+     fake this — the check runs server-side, and the same is_admin() guards
+     every table through RLS, so faking the UI never exposes real data. */
+  var _adminCache = null;            // null = not checked yet this session
+
+  // Ask the database whether the signed-in user is an admin.
+  // force=true bypasses the cache (used when entering the admin dashboard).
+  async function isAdmin(force) {
+    if (!client) return false;
+    if (!force && _adminCache !== null) return _adminCache;
+    try {
+      var r = await client.rpc('is_admin');
+      _adminCache = !r.error && r.data === true;
+    } catch (e) { _adminCache = false; }
+    return _adminCache;
+  }
 
   async function signIn(email, password) {
     if (!client) return { ok: false, demo: true, error: 'Backend not configured yet.' };
     var r = await client.auth.signInWithPassword({ email: email, password: password });
     if (r.error) return { ok: false, error: r.error.message };
-    return { ok: true, user: r.data.user, isAdmin: isAdminUser(r.data.user) };
+    _adminCache = null;                          // recheck for the new identity
+    return { ok: true, user: r.data.user, isAdmin: await isAdmin(true) };
   }
   async function signUp(email, password) {
     if (!client) return { ok: false, demo: true, error: 'Backend not configured yet.' };
@@ -98,7 +116,7 @@
     // When email confirmation is on, there is no session until the user confirms.
     return { ok: true, user: r.data.user, needsConfirm: !r.data.session };
   }
-  async function signOut() { if (client) await client.auth.signOut(); }
+  async function signOut() { _adminCache = null; if (client) await client.auth.signOut(); }
   async function currentUser() {
     if (!client) return null;
     var s = await client.auth.getSession();
@@ -106,7 +124,8 @@
   }
   async function currentAdmin() {
     var u = await currentUser();
-    return isAdminUser(u) ? u : null;
+    if (!u) return null;
+    return (await isAdmin()) ? u : null;
   }
   function onAuthChange(cb) {
     if (client) client.auth.onAuthStateChange(function (_e, session) { cb(session ? session.user : null); });
@@ -143,7 +162,7 @@
     signOut: signOut,
     currentUser: currentUser,
     currentAdmin: currentAdmin,
-    isAdminUser: isAdminUser,
+    isAdmin: isAdmin,
     onAuthChange: onAuthChange,
     listSubmissions: listSubmissions,
     listPayments: listPayments,

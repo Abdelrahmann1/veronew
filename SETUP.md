@@ -15,8 +15,8 @@ repo — it is stored only as a Supabase function secret that *you* set.
 2. In **Project Settings → API**, copy:
    - **Project URL** → `SUPABASE_URL`
    - **anon public** key → `SUPABASE_ANON_KEY`
-3. Paste both into [`config.js`](config.js), and set `ADMIN_EMAIL` to the address that
-   should access the dashboard (default `admin@gtrvero.com`).
+3. Paste both into [`config.js`](config.js). There is no admin email in `config.js` —
+   who is an admin is controlled entirely by the `admins` table (step 2/3).
 
 ## 2. Create the database
 1. Supabase → **SQL Editor → New query**.
@@ -24,7 +24,9 @@ repo — it is stored only as a Supabase function secret that *you* set.
    - This creates `submissions`, `payments`, `admins`, the `is_admin()` function,
      all row-level-security policies, and the private `cvs` storage bucket.
    - It seeds the admin allowlist with `admin@gtrvero.com` — **change that line** to
-     your real admin email (must match `ADMIN_EMAIL` in `config.js`).
+     your real admin email. The `admins` table is the single source of truth: the
+     `is_admin()` function checks each signed-in user's email against it, and the site
+     calls `is_admin()` (server-side) to decide who reaches the dashboard.
 3. **If you ran an earlier version of `schema.sql`** (before client accounts existed),
    also run [`supabase/migrations/002_client_accounts.sql`](supabase/migrations/002_client_accounts.sql).
    It adds the `user_id` columns + per-user policies so logged-in clients can see their

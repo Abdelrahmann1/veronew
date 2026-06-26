@@ -30,7 +30,8 @@
     var user = await B.currentUser();
     if (!user) { hide('loading'); show('gate'); wireGate(); return; }
     // Admins don't get the client account view — send them to the dashboard.
-    if (B.isAdminUser(user)) { location.replace('dashboard.html'); return; }
+    // Admin status is verified server-side (DB), not a browser-side flag.
+    if (await B.isAdmin()) { location.replace('dashboard.html'); return; }
     await enter(user);
   }
 

@@ -9,7 +9,8 @@
 create table if not exists public.admins (
   email text primary key
 );
--- Seed your admin (change to your real address; must match config.js ADMIN_EMAIL)
+-- This table is the SINGLE source of truth for who is an admin. Add or
+-- remove rows here to grant/revoke dashboard access — no front-end change.
 insert into public.admins (email) values ('admin@gtrvero.com')
   on conflict (email) do nothing;
 
@@ -18,6 +19,10 @@ returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.admins where email = auth.jwt() ->> 'email');
 $$;
+
+-- Let a signed-in user ask "am I an admin?" via RPC. It returns only a
+-- boolean about the caller (from their own JWT) and never reveals the list.
+grant execute on function public.is_admin() to anon, authenticated;
 
 -- ---------- Submissions (enquiries / appointments / webinar) ----------
 create table if not exists public.submissions (

@@ -3,14 +3,15 @@
    Fill these in after creating your Supabase project (see SETUP.md).
    Only PUBLIC keys live here (safe to ship to the browser):
      • Supabase URL + anon/public key  — public by design (RLS protects data)
-     • Admin email                      — gates the dashboard UI
+   Who counts as an admin is decided by the DATABASE (the public.admins
+   table, via the is_admin() function) — never here — so it cannot be faked
+   by editing anything in the browser.
    The Stripe SECRET key NEVER goes here — it lives only as a Supabase
    Edge Function secret that you set yourself.
    ============================================================ */
 window.VERO_CONFIG = {
   SUPABASE_URL:      'https://agmotqdkhsvhkvsftvnk.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnbW90cWRraHN2aGt2c2Z0dm5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMDA0NDcsImV4cCI6MjA5Nzg3NjQ0N30.kbJerhEp5Up_pePX-A77Cki2idrPFY56iOBV0WFYZUY',
-  ADMIN_EMAIL:       'e@gmail.com'
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnbW90cWRraHN2aGt2c2Z0dm5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMDA0NDcsImV4cCI6MjA5Nzg3NjQ0N30.kbJerhEp5Up_pePX-A77Cki2idrPFY56iOBV0WFYZUY'
 };
 
 /* Until the values above are filled in, the site runs in DEMO mode:
