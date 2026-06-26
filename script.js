@@ -159,7 +159,19 @@
     var nav = el('nav');
     nav.className = page === 'home' ? 'nav--home' : 'nav--inner';
     renderNav();
+    closeMenu();
     window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  /* ---------- Mobile burger menu ---------- */
+  function toggleMenu() {
+    var n = el('nav'); if (!n) return;
+    var open = n.classList.toggle('is-open');
+    var b = el('nav-burger'); if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function closeMenu() {
+    var n = el('nav'); if (n) n.classList.remove('is-open');
+    var b = el('nav-burger'); if (b) b.setAttribute('aria-expanded', 'false');
   }
 
   function renderNav() {
@@ -409,6 +421,7 @@
   }
 
   function openAuth(mode) {
+    closeMenu();
     var m = el('auth-modal'); if (!m) return;
     setAuthMode(mode || 'signin');
     m.hidden = false;
@@ -461,6 +474,10 @@
 
   /* ---------- Delegated clicks ---------- */
   document.addEventListener('click', function (e) {
+    if (e.target.closest('#nav-burger')) { toggleMenu(); return; }
+    // Tap outside the open menu to dismiss it.
+    var navEl = el('nav');
+    if (navEl && navEl.classList.contains('is-open') && !e.target.closest('#nav')) closeMenu();
     var ao = e.target.closest('[data-auth-open]');
     if (ao) { openAuth(ao.getAttribute('data-auth-open') || 'signin'); return; }
     if (e.target.closest('[data-auth-close]')) { closeAuth(); return; }
@@ -488,7 +505,7 @@
     }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeAuth();
+    if (e.key === 'Escape') { closeAuth(); closeMenu(); }
   });
 
   /* ---------- Boot ---------- */
