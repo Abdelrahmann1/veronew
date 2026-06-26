@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — GTR by Vero UK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash">
+
+  <!-- Loading -->
+  <div class="dash-loading" id="loading">Loading dashboard…</div>
+
+  <!-- Login gate -->
+  <div class="dash-gate" id="gate" hidden>
+    <div class="modal__card">
+      <div class="eyebrow eyebrow--sm eyebrow--mb-sm">Team access</div>
+      <h2 class="modal__title">Sign in to the <span class="it">dashboard</span></h2>
+      <form class="form" id="gate-form">
+        <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="username"/></label>
+        <label class="field"><span>Password</span><input name="password" type="password" required autocomplete="current-password"/></label>
+        <div class="auth-error" id="gate-error" hidden></div>
+        <button type="submit" class="btn btn--lg btn--dark btn--block">Sign in</button>
+      </form>
+      <p class="gate-note" id="gate-note">Admin access only.</p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header class="dash-top">
+      <div class="dash-top__inner">
+        <div class="footer-mark">
+          <span class="brand-dot"></span>
+          <span class="brand-text">
+            <span class="brand-name">GTR</span>
+            <span class="brand-sub">Dashboard</span>
+          </span>
+        </div>
+        <div class="dash-who">
+          <span id="who-email"></span>
+          <a class="dash-link-light" href="index.html">View site ↗</a>
+          <button class="btn btn--xs btn--ghost-dark" data-signout>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dash-main">
+      <div class="dash-demo" id="demo-note" hidden></div>
+      <div class="dash-stats" id="stat-cards"></div>
+      <div class="dash-tabs" id="tabs"></div>
+      <div id="table-area"></div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="vero-backend.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

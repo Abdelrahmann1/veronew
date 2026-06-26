@@ -1,0 +1,13 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*

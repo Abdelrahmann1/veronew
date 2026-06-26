@@ -1,0 +1,519 @@
+/* ============================================================
+   GTR by Vero UK — standalone behaviour
+   Page navigation, data-driven lists, FAQ accordion, contact form.
+   Plain vanilla JS — no framework. Generated markup uses the
+   classes defined in styles.css; no inline styles here.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  /* ---------- Data ---------- */
+  var navDefs = [
+    { key: 'home', label: 'Home' },
+    { key: 'about', label: 'About' },
+    { key: 'services', label: 'Services' },
+    { key: 'programme', label: 'Programme' },
+    { key: 'contact', label: 'Contact' }
+  ];
+
+  var whoFor = [
+    'Architects',
+    'Interior & spatial designers',
+    'Urban & masterplanning designers',
+    'Landscape & built-environment specialists',
+    'Visualisers & computational designers',
+    'Architecture researchers & academics',
+    'Design leaders & studio principals',
+    'Advanced creative professionals',
+    'Any creative professional in architecture & design'
+  ];
+
+  var evidence = [
+    { num: '01', title: 'Authored projects', body: 'Work where your design authorship and decisions are clearly your own.' },
+    { num: '02', title: 'Leadership & influence', body: 'Roles where you shaped teams, studios, or the direction of a project.' },
+    { num: '03', title: 'Awards & honours', body: 'Competitions, prizes, and professional recognition in your field.' },
+    { num: '04', title: 'Publications & media', body: 'Coverage, features, and writing that document your contribution.' },
+    { num: '05', title: 'Exhibitions & talks', body: 'Public presentation of your work to a professional audience.' },
+    { num: '06', title: 'Innovation & research', body: 'New methods, tools, or thinking that advance the discipline.' }
+  ];
+
+  var trustItems = [
+    { stat: 'Endorsed', label: 'Team of UK Global Talent endorsed leaders' },
+    { stat: '16 yrs', label: 'In architecture & design' },
+    { stat: '35+', label: 'Professionals supported' },
+    { stat: 'Independent', label: 'Not affiliated with any endorsing body' }
+  ];
+
+  var founderStats = [
+    { stat: '15 yrs', label: 'Average international experience' },
+    { stat: 'Endorsed', label: 'Team of Global Talent holders' },
+    { stat: '35+', label: 'Professionals supported & welcomed' }
+  ];
+
+  var veroMeaning = [
+    { word: 'Truth', body: 'Your achievements are real. The work is recognising and stating them clearly.' },
+    { word: 'Authenticity', body: 'A profile grounded in genuine authorship and contribution, not inflation.' },
+    { word: 'Clarity', body: 'Turning a complex career into a structured, legible case.' },
+    { word: 'Potential', body: 'Seeing the pathway your record already supports — and preparing for it.' }
+  ];
+
+  var approach = [
+    { title: 'Strategy-led', body: 'Every step is about positioning and evidence, not box-ticking.' },
+    { title: 'Honest & responsible', body: 'We use careful language and never overpromise an outcome.' },
+    { title: 'Personal', body: 'Built around your individual record, discipline, and ambitions.' }
+  ];
+
+  var responsibleTags = ['Strengthen your readiness', 'Prepare strategically', 'Improve clarity', 'Structure your evidence', 'Understand your pathway', 'Support your decision-making'];
+
+  var steps = [
+    { num: '01', name: 'Assess', desc: 'Understand your background, achievements, professional route, and current readiness — an honest baseline to build from.' },
+    { num: '02', name: 'Position', desc: 'Identify whether your profile should be positioned around leadership, promise, impact, innovation, design excellence, authorship, or contribution.' },
+    { num: '03', name: 'Map evidence', desc: 'Organise achievements, projects, awards, publications, media, exhibitions, leadership roles, and professional recognition into a structured evidence framework.' },
+    { num: '04', name: 'Build portfolio strategy', desc: 'Transform your portfolio from a design presentation into a strategic evidence document that communicates authorship, value, impact, and credibility.' },
+    { num: '05', name: 'Structure letters', desc: 'Identify the right recommenders and align letters with your professional narrative and evidence.' },
+    { num: '06', name: 'Develop narrative', desc: 'Build a clear, convincing personal story that connects your past achievements, current position, and future contribution.' },
+    { num: '07', name: 'Review and refine', desc: 'Review the overall pack for clarity, consistency, structure, and readiness.' },
+    { num: '08', name: 'Move forward', desc: 'Understand your next steps and prepare for submission with a clearer, more confident strategy.' }
+  ];
+
+  var services = [
+    { num: '01', name: 'Global Talent Assessment', tagline: 'The entry point',
+      desc: 'A focused assessment for professionals who are unsure whether they are ready for the UK Global Talent Route.',
+      includes: ['CV and background review', 'Professional experience review', 'Achievement and evidence check', 'Current visa status discussion, if relevant', 'Possible pathway direction', 'Exceptional Leader (Talent) vs Potential Leader (Promise)', 'Evidence gap overview', 'Recommended next step'],
+      bestFor: 'People who are exploring the route or unsure if they qualify.', cta: 'Book assessment' },
+    { num: '02', name: '1:1 Guidance', tagline: 'Personalised strategy',
+      desc: 'Personalised guidance for professionals who want to understand how to structure their application journey and prepare strategically. Normally two to three sessions of around 40 minutes, up to a maximum of six, taken at your own pace.',
+      includes: ['Route clarity', 'Evidence planning', 'Portfolio direction', 'Recommendation letter strategy', 'Career narrative development', 'Timeline planning', 'Normally 2–3 sessions of ~40 min, up to 6 maximum'],
+      bestFor: 'Professionals who are ready, or close to ready.', cta: 'Start 1:1 guidance' },
+    { num: '03', name: 'Document Review', tagline: 'Strategic feedback',
+      desc: 'A focused review for applicants who have already started preparing documents and need strategic feedback.',
+      includes: ['Portfolio review', 'Evidence pack review', 'Recommendation letter structure review', 'Career narrative feedback', 'Readiness comments', 'Improvement recommendations'],
+      bestFor: 'Applicants who already have draft documents.', cta: 'Review my documents' },
+    { num: '04', name: 'Full Mentorship', tagline: 'End-to-end · up to 4 weeks',
+      desc: 'A complete, end-to-end pathway over up to four weeks — from readiness review to a fully structured evidence pack, with guidance tailored to your individual experience using proven, endorsed frameworks.',
+      includes: ['Full profile and evidence strategy', 'Document structure guidance', 'Proven, endorsed structural frameworks', 'Portfolio and letters guidance', 'Career narrative development', 'Up to 3 mentorship sessions', 'Final readiness review', 'Priority support'],
+      bestFor: 'Advanced professionals who want full structure at a considered pace.', cta: 'Apply for mentorship' },
+    { num: '05', name: 'Accelerated Mentorship', tagline: 'Fast-track · within 5 days',
+      desc: 'An intensive fast-track delivered within five days. You receive our structured document templates — the proven, endorsed structures we use — so every document can be built and tailored to your experience at speed.',
+      includes: ['Structured document templates', 'Rapid readiness and gap review', 'Document structure tailored to your profile', 'Proven, endorsed structural frameworks', 'Portfolio and evidence prioritisation', 'Recommendation letter structure', 'Career narrative development', 'Daily working sessions', 'Priority, time-critical support'],
+      bestFor: 'Professionals working to a tight deadline who need to prepare within days.', cta: 'Request fast-track' }
+  ];
+
+  var pricing = [
+    { name: 'Eligibility Snapshot', price: 'Free', unit: 'no cost', note: 'Start here', cta: 'Get free snapshot', feature: false,
+      feats: ['Short readiness snapshot', 'Honest view of where you stand', 'Recommended next step'] },
+    { name: 'Global Talent Assessment', price: '£49', unit: 'one-off', note: 'Paid deep-dive', cta: 'Book assessment', feature: false,
+      feats: ['CV and background review', 'Achievement and evidence check', 'Possible pathway direction', 'Exceptional Leader (Talent) vs Potential Leader (Promise)', 'Recommended next step'] },
+    { name: '1:1 Guidance', price: '£119', unit: 'per 40-min session · normally 2–3, up to 6', note: 'Strategy on demand', cta: 'Start 1:1 guidance', feature: false,
+      feats: ['Route clarity', 'Evidence planning', 'Portfolio direction', 'Career narrative development', 'Normally 2–3 sessions of ~40 min, up to 6 maximum'] },
+    { name: 'Document Review', price: '£149', unit: 'full document review', note: 'For draft documents', cta: 'Review my documents', feature: false,
+      feats: ['Portfolio review', 'Evidence pack review', 'Recommendation letter structure review', 'Career narrative feedback', 'Improvement recommendations'] },
+    { name: 'Full Mentorship', price: '£349', unit: 'up to 4 weeks', note: 'Most popular', cta: 'Apply for mentorship', feature: true,
+      feats: ['Full profile and evidence strategy', 'Portfolio and letters guidance', 'Career narrative development', 'Up to 3 mentorship sessions', 'Final readiness review', 'Priority support'] },
+    { name: 'Accelerated Mentorship', price: '£949', unit: 'within 5 days · templates', note: 'Fast-track + templates', cta: 'Request fast-track', feature: false,
+      feats: ['Structured document templates', 'Document structure tailored to you', 'Daily working sessions', 'Career narrative development', 'Priority, time-critical support'] }
+  ];
+
+  var faqs = [
+    { q: 'Is this legal or immigration advice?', a: 'No. GTR by Vero UK provides educational and experience-based guidance only. For legal matters, you should consult a regulated immigration adviser and refer to official UK Government guidance.' },
+    { q: 'Do I need to be in the UK already?', a: 'No. The programme supports professionals internationally. Where relevant, we will discuss your current visa status as part of the assessment.' },
+    { q: 'Can you guarantee endorsement or a visa?', a: 'No. We help you prepare strategically and structure your evidence, but the decision rests entirely with the relevant endorsing body and the Home Office.' },
+    { q: 'Where should I start?', a: 'Most people begin with the Global Talent Assessment. It is the simplest way to understand whether the route fits you and what to do next.' }
+  ];
+
+  /* ---------- Helpers ---------- */
+  var CHECK = '<svg class="check-svg" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7.5" stroke="#c2b196" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function el(id) { return document.getElementById(id); }
+  function setHTML(node, html) { if (node) node.innerHTML = html; }
+
+  // Pricing plan ids — must match the edge function's PLANS keys.
+  var PLAN_ID = {
+    'Global Talent Assessment': 'assessment',
+    '1:1 Guidance': 'guidance',
+    'Document Review': 'review',
+    'Full Mentorship': 'mentorship',
+    'Accelerated Mentorship': 'accelerated'
+  };
+  // Plan id -> the contact form's "Interested in" option (demo fallback).
+  var PLAN_INTEREST = {
+    assessment: 'Global Talent Assessment',
+    guidance: '1:1 Guidance',
+    review: 'Document Review',
+    mentorship: 'Full Mentorship',
+    accelerated: 'Full Mentorship'
+  };
+
+  /* ---------- Navigation ---------- */
+  var current = 'home';
+
+  function go(page) {
+    current = page;
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) {
+      pages[i].classList.toggle('is-active', pages[i].getAttribute('data-page') === page);
+    }
+    var nav = el('nav');
+    nav.className = page === 'home' ? 'nav--home' : 'nav--inner';
+    renderNav();
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function renderNav() {
+    var menu = navDefs.map(function (n) {
+      return '<button class="navlink' + (n.key === current ? ' is-active' : '') + '" data-nav="' + n.key + '">' + esc(n.label) + '</button>';
+    }).join('');
+    setHTML(el('nav-menu'), menu);
+
+    var foot = navDefs.map(function (n) {
+      return '<button class="footer-link" data-nav="' + n.key + '">' + esc(n.label) + '</button>';
+    }).join('');
+    setHTML(el('footer-nav'), foot);
+  }
+
+  /* ---------- Renderers ---------- */
+  function renderMarquees() {
+    var who = whoFor.concat(whoFor).map(function (label) {
+      return '<div class="who-chip"><span class="who-chip-dot"></span>' +
+        '<span class="who-chip-label">' + esc(label) + '</span></div>';
+    }).join('');
+    setHTML(el('who-marquee'), who);
+
+    var ev = evidence.concat(evidence).map(function (e) {
+      return '<div class="evidence-card">' +
+        '<div class="eyebrow eyebrow--sm">' + esc(e.num) + '</div>' +
+        '<h3>' + esc(e.title) + '</h3>' +
+        '<p>' + esc(e.body) + '</p></div>';
+    }).join('');
+    setHTML(el('evidence-marquee'), ev);
+  }
+
+  function renderTrust() {
+    setHTML(el('trust-stats'), trustItems.map(function (t) {
+      return '<div class="stat"><div class="stat-num">' + esc(t.stat) + '</div>' +
+        '<div class="stat-label">' + esc(t.label) + '</div></div>';
+    }).join(''));
+  }
+
+  function renderPricing() {
+    var html = pricing.map(function (p) {
+      var feats = p.feats.map(function (ft) {
+        return '<div class="feat">' + CHECK + '<span>' + esc(ft) + '</span></div>';
+      }).join('');
+      var planId = p.price === 'Free' ? null : PLAN_ID[p.name];
+      var action = planId ? 'data-checkout="' + planId + '"' : 'data-nav="contact"';
+      return '<div class="price-card' + (p.feature ? ' price-card--feature' : '') + '">' +
+        '<div class="eyebrow eyebrow--sm eyebrow--mb-sm">' + esc(p.note) + '</div>' +
+        '<h3>' + esc(p.name) + '</h3>' +
+        '<div class="price-row">' +
+        '<span class="price-amount">' + esc(p.price) + '</span>' +
+        '<span class="price-unit">' + esc(p.unit) + '</span></div>' +
+        '<div class="price-sep"></div>' +
+        '<div class="price-feats">' + feats + '</div>' +
+        '<div class="price-cta-wrap"><button class="btn btn--md btn--block ' + (p.feature ? 'btn--light' : 'btn--pay') + '" ' + action + '>' + esc(p.cta) + '</button></div></div>';
+    }).join('');
+    var grids = document.querySelectorAll('.pricing-grid');
+    for (var i = 0; i < grids.length; i++) grids[i].innerHTML = html;
+  }
+
+  function renderServices() {
+    setHTML(el('services-list'), services.map(function (s) {
+      var includes = s.includes.map(function (inc) {
+        return '<div class="include">' + CHECK + '<span>' + esc(inc) + '</span></div>';
+      }).join('');
+      return '<div class="service-card">' +
+        '<div class="service-main">' +
+        '<div class="service-tagrow"><span class="service-num">' + esc(s.num) + '</span>' +
+        '<span class="service-tag">' + esc(s.tagline) + '</span></div>' +
+        '<h2>' + esc(s.name) + '</h2>' +
+        '<p class="service-desc">' + esc(s.desc) + '</p>' +
+        '<div class="service-bestfor"><span class="service-bestfor-label">Best for</span>' +
+        '<div class="service-bestfor-val">' + esc(s.bestFor) + '</div></div>' +
+        '<button class="btn btn--md btn--dark" data-nav="contact">' + esc(s.cta) + '</button></div>' +
+        '<div class="service-side"><span class="service-includes-label">What is included</span>' +
+        '<div class="include-list">' + includes + '</div></div></div>';
+    }).join(''));
+  }
+
+  function renderSteps() {
+    setHTML(el('steps-list'), steps.map(function (st) {
+      return '<div class="step">' +
+        '<div class="step-side">' +
+        '<div class="step-num">Step ' + esc(st.num) + '</div>' +
+        '<div class="step-name it">' + esc(st.name) + '</div></div>' +
+        '<div class="step-main"><p>' + esc(st.desc) + '</p></div></div>';
+    }).join(''));
+  }
+
+  function renderFounderStats() {
+    setHTML(el('founder-stats'), founderStats.map(function (fs) {
+      return '<div><div class="stat-num">' + esc(fs.stat) + '</div>' +
+        '<div class="stat-label">' + esc(fs.label) + '</div></div>';
+    }).join(''));
+  }
+
+  function renderVeroMeaning() {
+    setHTML(el('vero-meaning'), veroMeaning.map(function (v) {
+      return '<div class="meaning-card"><div class="meaning-word it">' + esc(v.word) + '</div>' +
+        '<div class="meaning-body">' + esc(v.body) + '</div></div>';
+    }).join(''));
+  }
+
+  function renderApproach() {
+    setHTML(el('approach-list'), approach.map(function (a) {
+      return '<div class="approach-item"><h3>' + esc(a.title) + '</h3>' +
+        '<p>' + esc(a.body) + '</p></div>';
+    }).join(''));
+  }
+
+  function renderResponsibleTags() {
+    setHTML(el('responsible-tags'), responsibleTags.map(function (r) {
+      return '<span class="chip">' + esc(r) + '</span>';
+    }).join(''));
+  }
+
+  /* ---------- FAQ accordion ---------- */
+  var openFaq = 0;
+  function renderFaq() {
+    setHTML(el('faq-list'), faqs.map(function (f, i) {
+      var isOpen = i === openFaq;
+      var answer = isOpen ? '<p class="faq-a">' + esc(f.a) + '</p>' : '';
+      return '<div class="faq-item">' +
+        '<button class="faq-q" data-faq="' + i + '">' +
+        '<span class="faq-q-text">' + esc(f.q) + '</span>' +
+        '<span class="faq-toggle">' + (isOpen ? '–' : '+') + '</span>' +
+        '</button>' + answer + '</div>';
+    }).join(''));
+  }
+
+  /* ---------- Backend bridge (Supabase + Stripe) ---------- */
+  function B() { return window.VeroBackend; }
+
+  function preselectInterest(val) {
+    var sel = document.querySelector('#contact-form select[name="interest"]');
+    if (!sel || !val) return;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === val || sel.options[i].text === val) { sel.selectedIndex = i; break; }
+    }
+  }
+
+  async function handleCheckout(planId, btn) {
+    if (!B() || !B().configured) {              // demo mode → route to the enquiry form
+      go('contact');
+      preselectInterest(PLAN_INTEREST[planId]);
+      return;
+    }
+    var old = btn.textContent;
+    btn.textContent = 'Redirecting…'; btn.disabled = true;
+    var r = await B().startCheckout(planId);
+    if (!r.ok) {
+      btn.textContent = old; btn.disabled = false;
+      showToast('Could not start checkout: ' + (r.error || 'unknown error'));
+    }
+  }
+
+  /* ---------- Contact form ---------- */
+  async function submitContact() {
+    var form = el('contact-form');
+    var thanks = el('contact-thanks');
+    var fd = new FormData(form);
+    var data = {};
+    fd.forEach(function (v, k) { if (k !== 'cv') data[k] = v; });
+    var fileInput = form.querySelector('input[type="file"]');
+    var file = fileInput && fileInput.files[0];
+    var btn = form.querySelector('button[type="submit"]');
+    var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
+    var r = B() ? await B().submitEnquiry(data, file) : { ok: true, demo: true };
+    btn.textContent = old; btn.disabled = false;
+    if (r.ok) {
+      form.classList.add('is-hidden');
+      thanks.classList.add('is-visible');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      showToast('Sorry — could not send your enquiry. ' + (r.error || ''));
+    }
+  }
+
+  function initForm() {
+    var form = el('contact-form');
+    if (form) {
+      // Submitting an enquiry is a booking action → require an account first.
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        requireAuthThen(submitContact);
+      });
+    }
+    var reset = el('reset-form');
+    if (reset) {
+      reset.addEventListener('click', function () {
+        var f = el('contact-form'), thanks = el('contact-thanks');
+        f.reset();
+        thanks.classList.remove('is-visible');
+        f.classList.remove('is-hidden');
+      });
+    }
+  }
+
+  /* ---------- Auth (clients + admin) ---------- */
+  var authUser = null;
+  var authMode = 'signin';
+  var pendingAction = null;   // runs after a logged-out user signs up/in via a gated action
+
+  // Gate: booking & payment actions require an account first.
+  function requireAuthThen(action) {
+    if (authUser) { action(); return; }
+    pendingAction = action;
+    openAuth('signup');
+  }
+
+  function renderAuthSlot() {
+    var slot = el('auth-slot'); if (!slot) return;
+    if (authUser) {
+      var admin = B() && B().isAdminUser(authUser);
+      var link = admin ? '<a class="navlink" href="dashboard.html">Dashboard</a>'
+                       : '<a class="navlink" href="account.html">My account</a>';
+      slot.innerHTML = link + '<button class="navlink" data-signout>Sign out</button>';
+    } else {
+      slot.innerHTML = '<button class="navlink" data-auth-open="signin">Sign in</button>' +
+                       '<button class="btn btn--xs btn--dark" data-auth-open="signup">Sign up</button>';
+    }
+  }
+
+  function prefillFromUser() {
+    if (!authUser) return;
+    var em = document.querySelector('#contact-form input[name="email"]');
+    if (em && !em.value) em.value = authUser.email;
+  }
+
+  async function refreshAuth() {
+    if (B() && B().configured) authUser = await B().currentUser();
+    renderAuthSlot();
+    prefillFromUser();
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    el('auth-title').textContent = mode === 'signup' ? 'Create your account' : 'Sign in';
+    el('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+    el('auth-toggle-text').textContent = mode === 'signup' ? 'Already have an account?' : 'New here?';
+    el('auth-toggle').textContent = mode === 'signup' ? 'Sign in' : 'Create an account';
+    var pw = document.querySelector('#auth-form input[name="password"]');
+    if (pw) pw.setAttribute('autocomplete', mode === 'signup' ? 'new-password' : 'current-password');
+    el('auth-error').hidden = true; el('auth-ok').hidden = true;
+  }
+
+  function openAuth(mode) {
+    var m = el('auth-modal'); if (!m) return;
+    setAuthMode(mode || 'signin');
+    m.hidden = false;
+    var i = m.querySelector('input[name="email"]'); if (i) i.focus();
+  }
+  function closeAuth() { var m = el('auth-modal'); if (m) m.hidden = true; }
+
+  function initAuth() {
+    var af = el('auth-form');
+    if (!af) return;
+    af.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var err = el('auth-error'), ok = el('auth-ok');
+      err.hidden = true; ok.hidden = true;
+      var btn = el('auth-submit');
+      var old = btn.textContent; btn.textContent = 'Please wait…'; btn.disabled = true;
+      var email = af.email.value, pw = af.password.value;
+      var r = !B() ? { ok: false, error: 'Backend not configured yet.' }
+            : authMode === 'signup' ? await B().signUp(email, pw)
+            : await B().signIn(email, pw);
+      btn.textContent = old; btn.disabled = false;
+      if (!r.ok) { err.textContent = r.error || 'Something went wrong.'; err.hidden = false; return; }
+      if (authMode === 'signup' && r.needsConfirm) {
+        ok.textContent = 'Account created — check your email to confirm, then sign in to continue.';
+        ok.hidden = false; setAuthMode('signin'); af.reset();
+        pendingAction = null;
+        return;
+      }
+      authUser = r.user || (B() ? await B().currentUser() : null);
+      renderAuthSlot(); prefillFromUser();
+      if (B() && B().isAdminUser(authUser)) { window.location.href = 'dashboard.html'; return; }
+      closeAuth();
+      if (pendingAction) { var act = pendingAction; pendingAction = null; act(); }
+      else showToast('Signed in — welcome.');
+    });
+  }
+
+  /* ---------- Toast + return-from-Stripe ---------- */
+  function showToast(msg) {
+    var t = el('pay-toast'); if (!t) return;
+    el('pay-toast-text').textContent = msg; t.hidden = false;
+  }
+  function initParams() {
+    var p = new URLSearchParams(location.search);
+    if (p.get('paid') === '1') showToast('Payment received — thank you. We will be in touch shortly.');
+    else if (p.get('canceled') === '1') showToast('Checkout canceled — no charge was made.');
+    if (p.has('paid') || p.has('canceled')) history.replaceState({}, '', location.pathname);
+  }
+
+  /* ---------- Delegated clicks ---------- */
+  document.addEventListener('click', function (e) {
+    var ao = e.target.closest('[data-auth-open]');
+    if (ao) { openAuth(ao.getAttribute('data-auth-open') || 'signin'); return; }
+    if (e.target.closest('[data-auth-close]')) { closeAuth(); return; }
+    if (e.target.closest('[data-auth-toggle]')) { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); return; }
+    if (e.target.closest('[data-toast-close]')) { var t = el('pay-toast'); if (t) t.hidden = true; return; }
+    if (e.target.closest('[data-signout]')) { if (B()) B().signOut(); authUser = null; renderAuthSlot(); showToast('Signed out.'); return; }
+    var pay = e.target.closest('[data-checkout]');
+    if (pay) { var plan = pay.getAttribute('data-checkout'); requireAuthThen(function () { handleCheckout(plan, pay); }); return; }
+    var navBtn = e.target.closest('[data-nav]');
+    if (navBtn) {
+      var page = navBtn.getAttribute('data-nav');
+      var intent = navBtn.getAttribute('data-intent');
+      var act = function () { go(page); if (intent) preselectInterest(intent); };
+      // Booking CTAs point at the contact form and use .btn; gate those. Plain
+      // nav-menu links (.navlink) and info pages (services/programme) stay open.
+      if (page === 'contact' && navBtn.classList.contains('btn')) requireAuthThen(act);
+      else act();
+      return;
+    }
+    var faqBtn = e.target.closest('[data-faq]');
+    if (faqBtn) {
+      var i = parseInt(faqBtn.getAttribute('data-faq'), 10);
+      openFaq = openFaq === i ? -1 : i;
+      renderFaq();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAuth();
+  });
+
+  /* ---------- Boot ---------- */
+  function init() {
+    renderNav();
+    renderMarquees();
+    renderTrust();
+    renderPricing();
+    renderServices();
+    renderSteps();
+    renderFounderStats();
+    renderVeroMeaning();
+    renderApproach();
+    renderResponsibleTags();
+    renderFaq();
+    initForm();
+    initAuth();
+    initParams();
+    renderAuthSlot();
+    if (B() && B().configured) {
+      B().onAuthChange(function (u) { authUser = u; renderAuthSlot(); prefillFromUser(); });
+      refreshAuth();
+    }
+    go('home');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

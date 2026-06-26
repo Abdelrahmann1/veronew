@@ -1,0 +1,74 @@
+/* ============================================================
+   GTR by Vero UK — admin dashboard styles
+   Reuses tokens, buttons, fields, modal & fonts from styles.css.
+   ============================================================ */
+.dash { background: #f4f1eb; min-height: 100vh; }
+
+/* The JS toggles views with the `hidden` attribute. Class rules below set
+   `display: flex`, which would otherwise beat the browser's [hidden] rule and
+   leave the gate/loading overlay stuck on screen even when signed in. Force
+   hidden to always win. */
+[hidden] { display: none !important; }
+
+.dash-loading,
+.dash-gate {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: #efeae1;
+}
+.dash-loading { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; font-size: 12px; color: var(--muted); }
+.gate-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin: 16px 0 0; }
+
+/* Top bar */
+.dash-top { background: var(--ink-deep); color: #fff; }
+.dash-top__inner { max-width: 1240px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dash-top .brand-name { color: #fff; }
+.dash-top .brand-sub  { color: rgba(255,255,255,.5); }
+.dash-top .brand-dot  { background: #fff; }
+.dash-top .brand-dot::after { background: var(--ink-deep); }
+.dash-top .footer-mark { margin: 0; }
+.dash-who { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: rgba(255,255,255,.7); }
+.dash-who .btn { color: #fff; border-color: rgba(255,255,255,.3); }
+.dash-link-light { color: rgba(255,255,255,.7); text-decoration: none; font-size: 13px; }
+.dash-link-light:hover { color: #fff; }
+
+/* Body */
+.dash-main { max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; }
+.dash-demo { background: #fbeee9; border: 1px solid #f2cabd; color: #8a3a26; border-radius: 12px; padding: 14px 16px; font-size: 13px; line-height: 1.5; margin-bottom: 24px; }
+
+.dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 32px; }
+.dash-stat { background: #fff; border: 1px solid var(--line-soft); border-radius: 16px; padding: 20px 22px; }
+.dash-stat__num { font-family: var(--font-display); font-size: clamp(26px,3vw,34px); font-weight: 500; letter-spacing: -1px; color: var(--ink); line-height: 1; }
+.dash-stat__label { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.dash-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.dash-tab { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; font-family: var(--font-body); font-size: 13px; cursor: pointer; color: var(--ink); }
+.dash-tab.is-active { background: var(--ink-deep); color: #fff; border-color: var(--ink-deep); }
+
+.dash-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; overflow: hidden; }
+.dash-scroll { overflow-x: auto; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table th { text-align: left; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 14px 16px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+.dash-table td { padding: 14px 16px; border-bottom: 1px solid var(--line-soft); color: var(--ink); vertical-align: top; white-space: nowrap; }
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tbody tr:hover { background: #faf8f3; }
+.dash-empty { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
+
+.status-select { font-family: var(--font-body); font-size: 12px; border: 1px solid var(--field); border-radius: 8px; padding: 6px 8px; background: #fff; cursor: pointer; }
+.pill-status { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 999px; }
+.pill-new       { background: #fde9d9; color: #9a4b16; }
+.pill-contacted { background: #e4eede; color: #3f6b2e; }
+.pill-closed    { background: #ececec; color: #666; }
+.dash-link { color: var(--vero-coral); text-decoration: none; }
+.dash-link:hover { text-decoration: underline; }
+
+/* Detailed "logical" view (client account portal) */
+.dash-section { margin-bottom: 30px; }
+.dash-section-title { font-family: var(--font-display); font-weight: 500; font-size: 20px; letter-spacing: -.4px; color: var(--ink); margin: 0 0 14px; }
+.detail-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 18px; padding: 24px; margin-bottom: 14px; }
+.detail-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.detail-eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px 24px; }
+.detail-item { min-width: 0; }
+.detail-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.detail-value { font-size: 14px; color: var(--ink); word-break: break-word; }
+.detail-msg { margin-top: 18px; border-top: 1px solid var(--line-soft); padding-top: 16px; }

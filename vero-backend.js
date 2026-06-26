@@ -1,0 +1,153 @@
+/* ============================================================
+   GTR by Vero UK — backend bridge (Supabase + Stripe)
+   Exposes window.VeroBackend used by script.js and dashboard.js.
+   Loads after the Supabase UMD bundle and config.js.
+   Degrades gracefully when not yet configured (DEMO mode).
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var cfg = window.VERO_CONFIG || {};
+  var configured = !!(cfg.isConfigured && cfg.isConfigured()) && !!window.supabase;
+  var client = configured
+    ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,      // keep the session in storage across reloads
+          autoRefreshToken: true,    // silently refresh before the token expires
+          detectSessionInUrl: true,  // pick up sessions from magic-link / OAuth redirects
+          storageKey: 'gtr-vero-auth'
+        }
+      })
+    : null;
+
+  /* ---------- Enquiries / appointments / webinar signups ---------- */
+  // Stored in one `submissions` table; `type` separates them for the dashboard.
+  async function submitEnquiry(data, file) {
+    if (!client) return { ok: true, demo: true };
+    try {
+      var cv_path = null;
+      if (file && file.size) {
+        var safe = file.name.replace(/[^\w.\-]+/g, '_');
+        var path = Date.now() + '-' + safe;
+        var up = await client.storage.from('cvs').upload(path, file, { upsert: false });
+        if (!up.error) cv_path = up.data.path;
+      }
+      var type = data.interest === 'Webinar' ? 'webinar' : 'enquiry';
+      var u = await currentUser();
+      var row = {
+        name: data.name || null,
+        email: data.email || null,
+        country: data.country || null,
+        profession: data.profession || null,
+        visa: data.visa || null,
+        years: data.years || null,
+        linkedin: data.linkedin || null,
+        portfolio: data.portfolio || null,
+        interest: data.interest || null,
+        timeline: data.timeline || null,
+        message: data.message || null,
+        cv_path: cv_path,
+        type: type,
+        status: 'new',
+        user_id: u ? u.id : null
+      };
+      var ins = await client.from('submissions').insert([row]);
+      return { ok: !ins.error, error: ins.error && ins.error.message };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  }
+
+  /* ---------- Stripe Checkout ---------- */
+  // The plan id is resolved to an amount SERVER-SIDE in the edge function,
+  // so the browser can never tamper with the price.
+  async function startCheckout(planId) {
+    if (!client) return { ok: false, demo: true };
+    try {
+      var s = await client.auth.getSession();
+      var token = s.data.session ? s.data.session.access_token : null;
+      var res = await fetch(cfg.SUPABASE_URL + '/functions/v1/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify({ plan: planId, origin: window.location.origin, userToken: token })
+      });
+      var j = await res.json();
+      if (j && j.url) { window.location.href = j.url; return { ok: true }; }
+      return { ok: false, error: (j && j.error) || 'No checkout URL returned' };
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
+  }
+
+  /* ---------- Auth (clients + admin) ---------- */
+  function isAdminUser(u) { return !!(u && u.email === cfg.ADMIN_EMAIL); }
+
+  async function signIn(email, password) {
+    if (!client) return { ok: false, demo: true, error: 'Backend not configured yet.' };
+    var r = await client.auth.signInWithPassword({ email: email, password: password });
+    if (r.error) return { ok: false, error: r.error.message };
+    return { ok: true, user: r.data.user, isAdmin: isAdminUser(r.data.user) };
+  }
+  async function signUp(email, password) {
+    if (!client) return { ok: false, demo: true, error: 'Backend not configured yet.' };
+    var r = await client.auth.signUp({ email: email, password: password });
+    if (r.error) return { ok: false, error: r.error.message };
+    // When email confirmation is on, there is no session until the user confirms.
+    return { ok: true, user: r.data.user, needsConfirm: !r.data.session };
+  }
+  async function signOut() { if (client) await client.auth.signOut(); }
+  async function currentUser() {
+    if (!client) return null;
+    var s = await client.auth.getSession();
+    return (s.data.session && s.data.session.user) || null;
+  }
+  async function currentAdmin() {
+    var u = await currentUser();
+    return isAdminUser(u) ? u : null;
+  }
+  function onAuthChange(cb) {
+    if (client) client.auth.onAuthStateChange(function (_e, session) { cb(session ? session.user : null); });
+  }
+
+  /* ---------- Dashboard data ---------- */
+  async function listSubmissions() {
+    if (!client) return { ok: false, demo: true, rows: [] };
+    var r = await client.from('submissions').select('*').order('created_at', { ascending: false });
+    return { ok: !r.error, rows: r.data || [], error: r.error && r.error.message };
+  }
+  async function listPayments() {
+    if (!client) return { ok: false, demo: true, rows: [] };
+    var r = await client.from('payments').select('*').order('created_at', { ascending: false });
+    return { ok: !r.error, rows: r.data || [], error: r.error && r.error.message };
+  }
+  async function setSubmissionStatus(id, status) {
+    if (!client) return { ok: false };
+    var r = await client.from('submissions').update({ status: status }).eq('id', id);
+    return { ok: !r.error, error: r.error && r.error.message };
+  }
+  async function cvUrl(path) {
+    if (!client || !path) return null;
+    var r = await client.storage.from('cvs').createSignedUrl(path, 3600);
+    return r.data && r.data.signedUrl;
+  }
+
+  window.VeroBackend = {
+    configured: configured,
+    submitEnquiry: submitEnquiry,
+    startCheckout: startCheckout,
+    signIn: signIn,
+    signUp: signUp,
+    signOut: signOut,
+    currentUser: currentUser,
+    currentAdmin: currentAdmin,
+    isAdminUser: isAdminUser,
+    onAuthChange: onAuthChange,
+    listSubmissions: listSubmissions,
+    listPayments: listPayments,
+    setSubmissionStatus: setSubmissionStatus,
+    cvUrl: cvUrl
+  };
+})();
