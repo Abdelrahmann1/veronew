@@ -53,10 +53,33 @@
         user_id: u ? u.id : null
       };
       var ins = await client.from('submissions').insert([row]);
+      if (!ins.error && row.booking_at) {
+        syncCalendar({
+          summary: 'GTR booking — ' + (row.name || 'Client') + (row.interest ? ' (' + row.interest + ')' : ''),
+          description: 'Enquiry booking\nClient: ' + (row.name || '') + '\nEmail: ' + (row.email || '') +
+            '\nInterest: ' + (row.interest || '') + '\nCountry: ' + (row.country || ''),
+          startISO: row.booking_at
+        });
+      }
       return { ok: !ins.error, error: ins.error && ins.error.message };
     } catch (e) {
       return { ok: false, error: String(e) };
     }
+  }
+
+  // Best-effort: ask the edge function to add the booking to the admin's
+  // Google Calendar. Failures are swallowed so they never block the booking.
+  async function syncCalendar(details) {
+    if (!client) return;
+    try {
+      var s = await client.auth.getSession();
+      var token = s.data.session ? s.data.session.access_token : null;
+      await fetch(cfg.SUPABASE_URL + '/functions/v1/add-to-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY },
+        body: JSON.stringify({ userToken: token, summary: details.summary, description: details.description, startISO: details.startISO })
+      });
+    } catch (e) { /* non-fatal */ }
   }
 
   /* ---------- Stripe Checkout ---------- */

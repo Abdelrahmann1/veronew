@@ -76,6 +76,32 @@ supabase functions deploy stripe-webhook --no-verify-jwt
 4. Copy the endpoint's **Signing secret** (`whsec_...`) and set it as
    `STRIPE_WEBHOOK_SECRET` (step 5), then re-deploy `stripe-webhook`.
 
+## 6b. Google Calendar sync (optional — auto-add bookings to your calendar)
+Bookings (form bookings with a date/time, and paid bookings) are auto-added to
+your Google Calendar via a **service account**.
+
+1. **Google Cloud Console** → create/select a project → **APIs & Services → Library**
+   → enable **Google Calendar API**.
+2. **APIs & Services → Credentials → Create credentials → Service account**.
+   Create it, then open it → **Keys → Add key → Create new key → JSON** (downloads a file).
+3. Open the JSON; you need two fields: `client_email` and `private_key`.
+4. **Google Calendar** (calendar.google.com) → your calendar → **Settings and sharing**
+   → **Share with specific people** → add the service account's `client_email`
+   → permission **"Make changes to events"**.
+5. Set the secrets (Supabase → **Edge Functions → Secrets**; paste the multi-line
+   private key into the value box):
+   - `GOOGLE_SERVICE_ACCOUNT_EMAIL` = the `client_email`
+   - `GOOGLE_PRIVATE_KEY` = the `private_key` value
+   - `GOOGLE_CALENDAR_ID` = the calendar to write to (usually **your email address**)
+   - `GOOGLE_TIMEZONE` = optional, default `Europe/London`
+6. Deploy the functions:
+   ```bash
+   supabase functions deploy add-to-calendar
+   supabase functions deploy stripe-webhook --no-verify-jwt   # picks up calendar sync for paid bookings
+   ```
+Form bookings call `add-to-calendar` from the site; paid bookings are added by the
+Stripe webhook. Calendar errors are non-fatal — a booking always saves even if sync fails.
+
 ## 7. Test
 - **Forms:** submit the contact form → a row appears in `submissions`
   (webinar buttons tag it `type = webinar`). CV uploads land in the `cvs` bucket.

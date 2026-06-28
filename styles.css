@@ -547,6 +547,8 @@ h1, h2, h3, p { margin: 0; }
 
 .booking-slots { margin-bottom: 14px; }
 .slots-hint { font-size: 13px; color: var(--muted); padding: 8px 0; }
+.slots-group + .slots-group { margin-top: 12px; }
+.slots-group__label { font-family: var(--font-mono); font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
 .slot { border: 1px solid var(--field); background: #fff; border-radius: 10px; padding: 9px 0;
   font-family: var(--font-body); font-size: 13px; color: var(--ink); cursor: pointer; }

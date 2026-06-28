@@ -1,0 +1,45 @@
+// ============================================================
+// GTR by Vero UK — add-to-calendar (Supabase Edge Function)
+// Called by the site after a signed-in client books a slot.
+// Verifies the caller's token, then creates the event on the
+// admin's Google Calendar via the shared helper.
+// Secrets: GOOGLE_* (see _shared/google-calendar.ts) + SUPABASE_*.
+// ============================================================
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createCalendarEvent } from "../_shared/google-calendar.ts";
+
+const admin = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+);
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+const json = (b: unknown, status = 200) =>
+  new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  try {
+    const { userToken, summary, description, startISO } = await req.json();
+
+    // Only a signed-in user may schedule (form bookings are gated behind auth).
+    if (!userToken) return json({ error: "Unauthorized" }, 401);
+    const { data } = await admin.auth.getUser(userToken);
+    if (!data.user) return json({ error: "Unauthorized" }, 401);
+
+    if (!startISO) return json({ ok: true, skipped: "no booking time" });
+
+    await createCalendarEvent({
+      summary: summary || "GTR booking",
+      description: description || "",
+      startISO,
+    });
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: String(e) }, 500);
+  }
+});

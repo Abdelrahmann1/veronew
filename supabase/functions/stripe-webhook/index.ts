@@ -8,6 +8,7 @@
 // ============================================================
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createCalendarEvent } from "../_shared/google-calendar.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   apiVersion: "2024-06-20",
@@ -46,6 +47,28 @@ Deno.serve(async (req) => {
       user_id: s.metadata?.user_id || null,
     }]);
     if (error) return new Response(`DB error: ${error.message}`, { status: 500 });
+
+    // Mirror the paid booking into the admin's Google Calendar (best-effort:
+    // never fail the webhook if calendar sync errors or isn't configured).
+    const bookingAt = s.metadata?.booking_at || "";
+    if (bookingAt) {
+      try {
+        await createCalendarEvent({
+          summary: "GTR booking — " +
+            (s.customer_details?.name || s.customer_details?.email || "Client") +
+            " (" + (s.metadata?.plan || "") + ")",
+          description:
+            "Paid booking\n" +
+            "Client: " + (s.customer_details?.name || "") + "\n" +
+            "Email: " + (s.customer_details?.email || "") + "\n" +
+            "Plan: " + (s.metadata?.plan || "") + "\n" +
+            "Amount: £" + (((s.amount_total ?? 0) / 100).toFixed(2)),
+          startISO: bookingAt,
+        });
+      } catch (e) {
+        console.error("calendar sync failed:", e);
+      }
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), {

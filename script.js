@@ -333,8 +333,10 @@
   var bookingView = null;    // first-of-month Date currently shown
   var bookingDay = null;     // selected day (Date at midnight)
   var bookingISO = null;     // selected full datetime (ISO string)
-  var SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
-               '13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+  var SLOT_GROUPS = [
+    { label: 'Morning', times: ['06:00', '06:30', '07:00', '07:30', '08:00'] },
+    { label: 'Evening', times: ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30'] }
+  ];
 
   function startOfToday() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
@@ -371,8 +373,7 @@
     for (var i = 0; i < startDow; i++) cells += '<span class="cal-cell cal-empty"></span>';
     for (var d = 1; d <= days; d++) {
       var date = new Date(y, m, d);
-      var weekend = date.getDay() === 0 || date.getDay() === 6;
-      var disabled = date < today || weekend;
+      var disabled = date < today;          // all 7 days open; only past dates blocked
       var sel = sameDay(date, bookingDay);
       cells += '<button type="button" class="cal-cell' + (disabled ? ' is-disabled' : '') + (sel ? ' is-selected' : '') + '"' +
         (disabled ? ' disabled' : '') + ' data-cal-day="' + d + '">' + d + '</button>';
@@ -385,14 +386,16 @@
     if (!bookingDay) { box.innerHTML = '<div class="slots-hint">Pick a day to see available times.</div>'; return; }
     var now = new Date();
     var isToday = sameDay(bookingDay, startOfToday());
-    var html = SLOTS.map(function (t) {
-      var p = t.split(':');
-      var dt = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
-      var passed = isToday && dt <= now;
-      var sel = bookingISO && new Date(bookingISO).getTime() === dt.getTime();
-      return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
+    box.innerHTML = SLOT_GROUPS.map(function (g) {
+      var btns = g.times.map(function (t) {
+        var p = t.split(':');
+        var dt = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
+        var passed = isToday && dt <= now;
+        var sel = bookingISO && new Date(bookingISO).getTime() === dt.getTime();
+        return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
+      }).join('');
+      return '<div class="slots-group"><div class="slots-group__label">' + g.label + '</div><div class="slots-grid">' + btns + '</div></div>';
     }).join('');
-    box.innerHTML = '<div class="slots-grid">' + html + '</div>';
   }
 
   function updateBookingSummary() {
