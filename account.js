@@ -136,6 +136,7 @@
         '<span class="detail-eyebrow">' + esc(r.type === 'webinar' ? 'Webinar signup' : 'Enquiry') + ' · ' + esc(fmtDate(r.created_at)) + '</span>' +
         statusPill(r.status) + '</div>';
       var grid = '<div class="detail-grid">' + pairs([
+        ['Booked for', r.booking_at ? fmtDate(r.booking_at) : null],
         ['Interested in', r.interest], ['Hoping to apply', r.timeline],
         ['Name', r.name], ['Email', r.email], ['Country', r.country],
         ['Profession', r.profession], ['Experience', r.years], ['Visa status', r.visa],
@@ -154,11 +155,12 @@
   function paymentsSection() {
     if (!state.pays.length) return section('Your payments', emptyCard('No payments yet.'));
     var rows = state.pays.map(function (r) {
-      return '<tr><td>' + esc(fmtDate(r.created_at)) + '</td><td>' + esc(r.plan || r.package_name || '—') +
+      return '<tr><td>' + esc(fmtDate(r.created_at)) + '</td><td>' + esc(r.booking_at ? fmtDate(r.booking_at) : '—') +
+        '</td><td>' + esc(r.plan || r.package_name || '—') +
         '</td><td>' + gbp(r.amount) + '</td><td>' + esc(r.status) + '</td></tr>';
     }).join('');
     var t = '<div class="dash-card dash-scroll"><table class="dash-table"><thead><tr>' +
-      '<th>Date</th><th>Plan</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+      '<th>Date</th><th>Booked for</th><th>Plan</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     return section('Your payments', t);
   }
 

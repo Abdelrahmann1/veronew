@@ -40,6 +40,7 @@ create table if not exists public.submissions (
   timeline    text,
   message     text,
   cv_path     text,
+  booking_at  timestamptz,                        -- chosen appointment date/time
   type        text not null default 'enquiry',   -- enquiry | webinar
   status      text not null default 'new',        -- new | contacted | closed
   user_id     uuid references auth.users(id)      -- set when a logged-in client submits
@@ -80,6 +81,7 @@ create table if not exists public.payments (
   package_name       text,
   amount             integer,          -- in pence
   currency           text default 'gbp',
+  booking_at         timestamptz,      -- chosen appointment date/time
   status             text default 'paid',
   user_id            uuid references auth.users(id)   -- set when a logged-in client pays
 );

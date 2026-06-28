@@ -47,6 +47,7 @@
         timeline: data.timeline || null,
         message: data.message || null,
         cv_path: cv_path,
+        booking_at: data.booking_at || null,
         type: type,
         status: 'new',
         user_id: u ? u.id : null
@@ -61,7 +62,7 @@
   /* ---------- Stripe Checkout ---------- */
   // The plan id is resolved to an amount SERVER-SIDE in the edge function,
   // so the browser can never tamper with the price.
-  async function startCheckout(planId) {
+  async function startCheckout(planId, bookingAt) {
     if (!client) return { ok: false, demo: true };
     try {
       var s = await client.auth.getSession();
@@ -72,7 +73,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY
         },
-        body: JSON.stringify({ plan: planId, origin: window.location.origin, userToken: token })
+        body: JSON.stringify({ plan: planId, origin: window.location.origin, userToken: token, bookingAt: bookingAt || null })
       });
       var j = await res.json();
       if (j && j.url) { window.location.href = j.url; return { ok: true }; }

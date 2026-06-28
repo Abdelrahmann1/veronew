@@ -312,28 +312,119 @@
     }
   }
 
-  async function handleCheckout(planId, btn) {
+  async function handleCheckout(planId, btn, bookingAt) {
     if (!B() || !B().configured) {              // demo mode → route to the enquiry form
       go('contact');
       preselectInterest(PLAN_INTEREST[planId]);
+      if (bookingAt) setContactBooking(bookingAt);
       return;
     }
     var old = btn.textContent;
     btn.textContent = 'Redirecting…'; btn.disabled = true;
-    var r = await B().startCheckout(planId);
+    var r = await B().startCheckout(planId, bookingAt);
     if (!r.ok) {
       btn.textContent = old; btn.disabled = false;
       showToast('Could not start checkout: ' + (r.error || 'unknown error'));
     }
   }
 
+  /* ---------- Booking date/time picker (calendar + slots) ---------- */
+  var bookingCb = null;      // called with the chosen ISO string on confirm
+  var bookingView = null;    // first-of-month Date currently shown
+  var bookingDay = null;     // selected day (Date at midnight)
+  var bookingISO = null;     // selected full datetime (ISO string)
+  var SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30',
+               '13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+
+  function startOfToday() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function fmtSlot(iso) {
+    return new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function openBooking(cb, presetISO) {
+    bookingCb = cb || null;
+    var base = presetISO ? new Date(presetISO) : new Date();
+    bookingView = new Date(base.getFullYear(), base.getMonth(), 1);
+    bookingISO = presetISO || null;
+    bookingDay = presetISO ? new Date(base.getFullYear(), base.getMonth(), base.getDate()) : null;
+    renderBookingCal(); renderBookingSlots(); updateBookingSummary();
+    var c = el('booking-confirm'); if (c) c.disabled = !bookingISO;
+    var m = el('booking-modal'); if (m) m.hidden = false;
+  }
+  function closeBooking() { var m = el('booking-modal'); if (m) m.hidden = true; }
+
+  function renderBookingCal() {
+    var cal = el('booking-cal'); if (!cal || !bookingView) return;
+    var y = bookingView.getFullYear(), m = bookingView.getMonth();
+    var first = new Date(y, m, 1);
+    var startDow = (first.getDay() + 6) % 7;            // Monday-first grid
+    var days = new Date(y, m + 1, 0).getDate();
+    var today = startOfToday();
+    var canPrev = !(y === today.getFullYear() && m === today.getMonth());
+    var head = '<div class="cal-head">' +
+      '<button type="button" class="cal-nav" data-cal-prev' + (canPrev ? '' : ' disabled') + '>‹</button>' +
+      '<span class="cal-month">' + esc(first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })) + '</span>' +
+      '<button type="button" class="cal-nav" data-cal-next>›</button></div>';
+    var dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function (d) { return '<span class="cal-dow">' + d + '</span>'; }).join('');
+    var cells = '';
+    for (var i = 0; i < startDow; i++) cells += '<span class="cal-cell cal-empty"></span>';
+    for (var d = 1; d <= days; d++) {
+      var date = new Date(y, m, d);
+      var weekend = date.getDay() === 0 || date.getDay() === 6;
+      var disabled = date < today || weekend;
+      var sel = sameDay(date, bookingDay);
+      cells += '<button type="button" class="cal-cell' + (disabled ? ' is-disabled' : '') + (sel ? ' is-selected' : '') + '"' +
+        (disabled ? ' disabled' : '') + ' data-cal-day="' + d + '">' + d + '</button>';
+    }
+    cal.innerHTML = head + '<div class="cal-grid">' + dows + cells + '</div>';
+  }
+
+  function renderBookingSlots() {
+    var box = el('booking-slots'); if (!box) return;
+    if (!bookingDay) { box.innerHTML = '<div class="slots-hint">Pick a day to see available times.</div>'; return; }
+    var now = new Date();
+    var isToday = sameDay(bookingDay, startOfToday());
+    var html = SLOTS.map(function (t) {
+      var p = t.split(':');
+      var dt = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
+      var passed = isToday && dt <= now;
+      var sel = bookingISO && new Date(bookingISO).getTime() === dt.getTime();
+      return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
+    }).join('');
+    box.innerHTML = '<div class="slots-grid">' + html + '</div>';
+  }
+
+  function updateBookingSummary() {
+    var s = el('booking-selected'); if (!s) return;
+    s.textContent = bookingISO ? 'Selected: ' + fmtSlot(bookingISO) : '';
+  }
+
+  function setContactBooking(iso) {
+    var input = el('booking-field-input'), text = el('booking-field-text'), btn = el('booking-field');
+    if (input) input.value = iso;
+    if (text) text.textContent = fmtSlot(iso);
+    if (btn) btn.classList.add('is-set');
+  }
+
   /* ---------- Contact form ---------- */
+  // Webinar signups are free & open: no account and no date/time slot needed.
+  function isWebinarEnquiry() {
+    var sel = document.querySelector('#contact-form select[name="interest"]');
+    return !!(sel && sel.value === 'Webinar');
+  }
+
   async function submitContact() {
     var form = el('contact-form');
     var thanks = el('contact-thanks');
     var fd = new FormData(form);
     var data = {};
     fd.forEach(function (v, k) { if (k !== 'cv') data[k] = v; });
+    if (!isWebinarEnquiry() && !data.booking_at) {   // bookings need a slot; webinars don't
+      showToast('Please choose a preferred date & time first.');
+      openBooking(function (iso) { setContactBooking(iso); }, null);
+      return;
+    }
     var fileInput = form.querySelector('input[type="file"]');
     var file = fileInput && fileInput.files[0];
     var btn = form.querySelector('button[type="submit"]');
@@ -352,10 +443,11 @@
   function initForm() {
     var form = el('contact-form');
     if (form) {
-      // Submitting an enquiry is a booking action → require an account first.
+      // Bookings need an account; webinar signups are free & open (no account).
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        requireAuthThen(submitContact);
+        if (isWebinarEnquiry()) submitContact();
+        else requireAuthThen(submitContact);
       });
     }
     var reset = el('reset-form');
@@ -478,6 +570,16 @@
     // Tap outside the open menu to dismiss it.
     var navEl = el('nav');
     if (navEl && navEl.classList.contains('is-open') && !e.target.closest('#nav')) closeMenu();
+    // Booking date/time picker
+    if (e.target.closest('#booking-field')) { openBooking(function (iso) { setContactBooking(iso); }, el('booking-field-input').value || null); return; }
+    if (e.target.closest('[data-booking-close]')) { closeBooking(); return; }
+    if (e.target.closest('[data-cal-prev]')) { bookingView.setMonth(bookingView.getMonth() - 1); renderBookingCal(); return; }
+    if (e.target.closest('[data-cal-next]')) { bookingView.setMonth(bookingView.getMonth() + 1); renderBookingCal(); return; }
+    var calDay = e.target.closest('[data-cal-day]');
+    if (calDay) { bookingDay = new Date(bookingView.getFullYear(), bookingView.getMonth(), +calDay.getAttribute('data-cal-day')); bookingISO = null; renderBookingCal(); renderBookingSlots(); updateBookingSummary(); var cc = el('booking-confirm'); if (cc) cc.disabled = true; return; }
+    var slotBtn = e.target.closest('[data-slot]');
+    if (slotBtn) { var sp = slotBtn.getAttribute('data-slot').split(':'); bookingISO = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +sp[0], +sp[1]).toISOString(); renderBookingSlots(); updateBookingSummary(); var cf = el('booking-confirm'); if (cf) cf.disabled = false; return; }
+    if (e.target.closest('#booking-confirm')) { if (!bookingISO) return; var cb = bookingCb; bookingCb = null; closeBooking(); if (cb) cb(bookingISO); return; }
     var ao = e.target.closest('[data-auth-open]');
     if (ao) { openAuth(ao.getAttribute('data-auth-open') || 'signin'); return; }
     if (e.target.closest('[data-auth-close]')) { closeAuth(); return; }
@@ -485,15 +587,20 @@
     if (e.target.closest('[data-toast-close]')) { var t = el('pay-toast'); if (t) t.hidden = true; return; }
     if (e.target.closest('[data-signout]')) { if (B()) B().signOut(); authUser = null; authIsAdmin = false; renderAuthSlot(); showToast('Signed out.'); return; }
     var pay = e.target.closest('[data-checkout]');
-    if (pay) { var plan = pay.getAttribute('data-checkout'); requireAuthThen(function () { handleCheckout(plan, pay); }); return; }
+    if (pay) {
+      var plan = pay.getAttribute('data-checkout');
+      // Account first → pick a date & time → then Stripe checkout.
+      requireAuthThen(function () { openBooking(function (iso) { handleCheckout(plan, pay, iso); }); });
+      return;
+    }
     var navBtn = e.target.closest('[data-nav]');
     if (navBtn) {
       var page = navBtn.getAttribute('data-nav');
       var intent = navBtn.getAttribute('data-intent');
       var act = function () { go(page); if (intent) preselectInterest(intent); };
-      // Booking CTAs point at the contact form and use .btn; gate those. Plain
-      // nav-menu links (.navlink) and info pages (services/programme) stay open.
-      if (page === 'contact' && navBtn.classList.contains('btn')) requireAuthThen(act);
+      // Booking CTAs (.btn → contact) require an account; the webinar CTA is
+      // open to guests. Plain nav-menu links and info pages stay open.
+      if (page === 'contact' && navBtn.classList.contains('btn') && intent !== 'Webinar') requireAuthThen(act);
       else act();
       return;
     }
@@ -505,7 +612,7 @@
     }
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeAuth(); closeMenu(); }
+    if (e.key === 'Escape') { closeAuth(); closeMenu(); closeBooking(); }
   });
 
   /* ---------- Boot ---------- */

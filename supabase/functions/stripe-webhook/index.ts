@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
       package_name: (s.metadata?.plan ?? null),
       amount: s.amount_total ?? null,
       currency: s.currency ?? "gbp",
+      booking_at: s.metadata?.booking_at || null,
       status: "paid",
       user_id: s.metadata?.user_id || null,
     }]);

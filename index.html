@@ -383,6 +383,14 @@
             </label>
           </div>
           <label class="field">
+            <span>Preferred date &amp; time</span>
+            <button type="button" class="field-picker" id="booking-field" data-booking-open>
+              <span id="booking-field-text">Choose a date &amp; time</span>
+              <span class="field-picker__icon" aria-hidden="true">▾</span>
+            </button>
+            <input type="hidden" name="booking_at" id="booking-field-input"/>
+          </label>
+          <label class="field">
             <span>Short message</span>
             <textarea name="message" rows="4" placeholder="Tell us briefly about your background and what you are hoping to achieve."></textarea>
           </label>
@@ -482,6 +490,21 @@
       <button class="link-btn" id="auth-toggle" data-auth-toggle>Create an account</button>
     </p>
     <p class="modal__note">Creating an account lets you track your enquiry and payments. You can also enquire or pay as a guest.</p>
+  </div>
+</div>
+
+<!-- ============ BOOKING PICKER MODAL ============ -->
+<div class="modal" id="booking-modal" hidden>
+  <div class="modal__backdrop" data-booking-close></div>
+  <div class="modal__card modal__card--booking" role="dialog" aria-modal="true" aria-labelledby="booking-title">
+    <button class="modal__close" data-booking-close aria-label="Close">×</button>
+    <div class="eyebrow eyebrow--sm eyebrow--mb-sm">Choose a time</div>
+    <h2 class="modal__title" id="booking-title">Pick a date &amp; time</h2>
+    <div class="booking-cal" id="booking-cal"></div>
+    <div class="booking-slots" id="booking-slots"></div>
+    <div class="booking-selected" id="booking-selected"></div>
+    <button type="button" class="btn btn--lg btn--dark btn--block" id="booking-confirm" disabled>Confirm date &amp; time</button>
+    <p class="modal__note">Weekdays only · times shown in your local time · 30-minute sessions.</p>
   </div>
 </div>
 

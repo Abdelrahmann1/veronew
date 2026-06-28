@@ -515,6 +515,47 @@ h1, h2, h3, p { margin: 0; }
 .auth-ok { font-size: 13px; color: #3f6b2e; background: #e9f1e3; border: 1px solid #cfe0c2; border-radius: 8px; padding: 10px 12px; }
 .auth-ok[hidden] { display: none; }
 
+/* ============================================================
+   Booking date/time picker (calendar + time slots)
+   ============================================================ */
+.field-picker {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; text-align: left; cursor: pointer;
+  font-family: var(--font-body); font-size: 15px; color: var(--muted);
+  background: #fff; border: 1px solid var(--field); border-radius: 12px; padding: 13px 14px;
+}
+.field-picker:hover { border-color: var(--ink); }
+.field-picker.is-set { color: var(--ink); }
+.field-picker__icon { color: var(--muted); font-size: 12px; flex: none; }
+
+.modal__card--booking { max-width: 460px; }
+.booking-cal { margin-bottom: 16px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-month { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
+.cal-nav { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--paper-line);
+  background: var(--paper); cursor: pointer; font-size: 18px; line-height: 1; color: var(--ink); }
+.cal-nav:disabled { opacity: .35; cursor: not-allowed; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow { text-align: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--muted); padding: 4px 0; }
+.cal-cell { aspect-ratio: 1; border: none; background: none; border-radius: 10px; cursor: pointer;
+  font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+.cal-cell:hover:not(.is-disabled):not(.cal-empty) { background: var(--paper); }
+.cal-cell.is-selected { background: var(--ink-deep); color: #fff; }
+.cal-cell.is-disabled { color: #cdc4b4; cursor: not-allowed; }
+.cal-empty { cursor: default; }
+
+.booking-slots { margin-bottom: 14px; }
+.slots-hint { font-size: 13px; color: var(--muted); padding: 8px 0; }
+.slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.slot { border: 1px solid var(--field); background: #fff; border-radius: 10px; padding: 9px 0;
+  font-family: var(--font-body); font-size: 13px; color: var(--ink); cursor: pointer; }
+.slot:hover:not(:disabled) { border-color: var(--ink); }
+.slot.is-selected { background: var(--ink-deep); color: #fff; border-color: var(--ink-deep); }
+.slot:disabled { opacity: .35; cursor: not-allowed; }
+
+.booking-selected { min-height: 20px; margin-bottom: 14px; font-size: 14px; color: var(--ink); font-weight: 500; }
+
 /* Nav account control (third nav column) */
 .nav-auth { justify-self: end; display: flex; align-items: center; gap: 14px; }
 

@@ -200,9 +200,9 @@
       var pays = state.pays.filter(matchQ);
       if (!pays.length) { area.innerHTML = empty('No payments yet.'); return; }
       area.innerHTML = wrapTable(
-        ['Date', 'Name', 'Email', 'Plan', 'Amount', 'Status'],
+        ['Date', 'Name', 'Email', 'Booked for', 'Plan', 'Amount', 'Status'],
         pays.map(function (r) {
-          return row([fmtDate(r.created_at), dash(r.name), dash(r.email), dash(r.plan || r.package_name), gbp(r.amount), statusPill(r.status)]);
+          return row([fmtDate(r.created_at), dash(r.name), dash(r.email), (r.booking_at ? fmtDate(r.booking_at) : '—'), dash(r.plan || r.package_name), gbp(r.amount), statusPill(r.status)]);
         }).join('')
       );
       return;
@@ -217,13 +217,14 @@
       var cv = r.cv_path ? '<a class="dash-link" href="#" data-cv="' + esc(r.cv_path) + '">View</a>' : '—';
       return '<tr>' +
         td(fmtDate(r.created_at)) + td(dash(r.name)) + td(dash(r.email)) +
+        td(r.booking_at ? fmtDate(r.booking_at) : '—') +
         td(dash(r.interest)) + td(dash(r.timeline)) + td(dash(r.profession)) +
         td(dash(r.country)) + td(dash(r.years)) + td(cv) + td(statusSelect(r)) +
         '</tr>';
     }).join('');
 
     area.innerHTML = wrapTable(
-      ['Date', 'Name', 'Email', 'Interested in', 'Timeline', 'Profession', 'Country', 'Exp.', 'CV', 'Status'],
+      ['Date', 'Name', 'Email', 'Booked for', 'Interested in', 'Timeline', 'Profession', 'Country', 'Exp.', 'CV', 'Status'],
       body
     );
   }
@@ -271,6 +272,7 @@
             esc(r.type === 'webinar' ? 'Webinar signup' : 'Enquiry') + ' · ' + esc(fmtDate(r.created_at)) +
             '</span>' + statusPill(r.status) + '</div>';
           var grid = '<div class="detail-grid">' + pairs([
+            ['Booked for', r.booking_at ? fmtDate(r.booking_at) : null],
             ['Interested in', r.interest], ['Timeline', r.timeline],
             ['Country', r.country], ['Profession', r.profession],
             ['CV', r.cv_path ? 'Uploaded' : null]
@@ -282,9 +284,9 @@
       : emptyInline('No enquiries.');
 
     var paysT = c.pays.length
-      ? wrapTable(['Date', 'Plan', 'Amount', 'Status'],
+      ? wrapTable(['Date', 'Booked for', 'Plan', 'Amount', 'Status'],
           c.pays.map(function (r) {
-            return row([fmtDate(r.created_at), dash(r.plan || r.package_name), gbp(r.amount), statusPill(r.status)]);
+            return row([fmtDate(r.created_at), (r.booking_at ? fmtDate(r.booking_at) : '—'), dash(r.plan || r.package_name), gbp(r.amount), statusPill(r.status)]);
           }).join(''))
       : emptyInline('No payments.');
 

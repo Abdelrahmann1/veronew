@@ -34,10 +34,20 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Pretty-print the chosen booking slot for the Stripe receipt (UK time).
+function formatSlot(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("en-GB", {
+      timeZone: "Europe/London", weekday: "short", day: "2-digit",
+      month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  } catch { return iso; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
-    const { plan, origin, userToken } = await req.json();
+    const { plan, origin, userToken, bookingAt } = await req.json();
     const def = PLANS[plan];
     if (!def) {
       return new Response(JSON.stringify({ error: "Unknown plan" }), {
@@ -62,10 +72,13 @@ Deno.serve(async (req) => {
         price_data: {
           currency: "gbp",
           unit_amount: def.amount,
-          product_data: { name: "GTR by Vero UK — " + def.name },
+          product_data: {
+            name: "GTR by Vero UK — " + def.name,
+            ...(bookingAt ? { description: "Booked for " + formatSlot(bookingAt) } : {}),
+          },
         },
       }],
-      metadata: { plan, user_id: userId },
+      metadata: { plan, user_id: userId, booking_at: bookingAt || "" },
       success_url: `${base}/index.html?paid=1`,
       cancel_url: `${base}/index.html?canceled=1`,
     });
