@@ -48,6 +48,9 @@
   async function enter(admin) {
     hide('loading'); hide('gate'); show('app');
     el('who-email').textContent = admin.email;
+    // Ask once for desktop-notification permission so alerts show even when
+    // the dashboard tab is in the background.
+    try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
     await loadData();
   }
 
@@ -80,6 +83,70 @@
     }
     state.clients = buildClients();
     renderStats(); renderTabs(); renderToolbar(); render();
+    seedKnown();        // remember what's already here (no alerts for existing rows)
+    startWatching();    // then watch for anything new
+  }
+
+  /* ---------- Live notifications ----------
+     Poll the same RLS-protected queries for new enquiries / bookings /
+     payments and alert the admin — no extra Supabase setup required. */
+  var knownSub = {}, knownPay = {}, watchTimer = null;
+
+  function seedKnown() {
+    knownSub = {}; knownPay = {};
+    state.subs.forEach(function (r) { knownSub[r.id] = true; });
+    state.pays.forEach(function (r) { knownPay[r.id] = true; });
+  }
+  function startWatching() {
+    if (watchTimer) return;
+    watchTimer = setInterval(checkForNew, 15000);   // every 15 seconds
+  }
+  async function checkForNew() {
+    var s = await B.listSubmissions();
+    var p = await B.listPayments();
+    if (s.error || p.error) return;
+    var subs = s.rows || [], pays = p.rows || [];
+    var newSubs = subs.filter(function (r) { return !knownSub[r.id]; });
+    var newPays = pays.filter(function (r) { return !knownPay[r.id]; });
+    if (!newSubs.length && !newPays.length) return;
+
+    state.subs = subs; state.pays = pays; seedKnown();
+    state.clients = buildClients();
+    renderStats(); renderTabs();
+    if (!(state.tab === 'clients' && state.client)) render();   // refresh the open list view
+
+    newSubs.forEach(function (r) {
+      notify(r.type === 'webinar' ? 'New webinar signup' : 'New enquiry',
+        (r.name || r.email || 'Someone') + (r.interest ? ' · ' + r.interest : ''),
+        r.type === 'webinar' ? 'webinar' : 'enquiry');
+    });
+    newPays.forEach(function (r) {
+      notify('New payment', (r.name || r.email || 'Someone') + ' · ' + gbp(r.amount), 'payment');
+    });
+    ping();
+  }
+  function notify(title, body, tab) {
+    var stack = el('notif-stack');
+    if (stack) {
+      var card = document.createElement('div');
+      card.className = 'notif';
+      card.setAttribute('data-tab', tab === 'payment' ? 'payment' : (tab === 'webinar' ? 'webinar' : 'enquiry'));
+      card.innerHTML = '<div class="notif__title">🔔 ' + esc(title) + '</div><div class="notif__body">' + esc(body) + '</div>';
+      stack.appendChild(card);
+      setTimeout(function () { card.style.opacity = '0'; setTimeout(function () { card.remove(); }, 300); }, 10000);
+    }
+    try {
+      if (window.Notification && Notification.permission === 'granted') new Notification(title, { body: body });
+    } catch (e) {}
+  }
+  function ping() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+      var ctx = new Ctx(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.04;
+      o.start(); o.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
   }
 
   /* ---------- Client aggregation ----------
