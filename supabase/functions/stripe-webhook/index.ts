@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
 
   if (event.type === "checkout.session.completed") {
     const s = event.data.object as Stripe.Checkout.Session;
-    const { error } = await admin.from("payments").insert([{
+    // Upsert on the unique stripe_session_id → idempotent: a Stripe retry or
+    // duplicate event updates the same row instead of failing on the constraint.
+    const { error } = await admin.from("payments").upsert([{
       stripe_session_id: s.id,
       payment_intent: typeof s.payment_intent === "string" ? s.payment_intent : null,
       email: s.customer_details?.email ?? null,
@@ -45,7 +47,7 @@ Deno.serve(async (req) => {
       booking_at: s.metadata?.booking_at || null,
       status: "paid",
       user_id: s.metadata?.user_id || null,
-    }]);
+    }], { onConflict: "stripe_session_id" });
     if (error) return new Response(`DB error: ${error.message}`, { status: 500 });
 
     // Mirror the paid booking into the admin's Google Calendar (best-effort:

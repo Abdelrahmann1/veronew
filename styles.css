@@ -528,7 +528,11 @@ h1, h2, h3, p { margin: 0; }
 .field-picker.is-set { color: var(--ink); }
 .field-picker__icon { color: var(--muted); font-size: 12px; flex: none; }
 
-.modal__card--booking { max-width: 460px; }
+.modal__card--booking { max-width: 460px; max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+.booking-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* Confirm stays grey/disabled until a date AND time are chosen, then goes dark */
+#booking-confirm:disabled { background: #ddd7cb; color: #a89f8c; cursor: not-allowed; }
+#booking-confirm:disabled:hover { background: #ddd7cb; }
 .booking-cal { margin-bottom: 16px; }
 .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .cal-month { font-family: var(--font-display); font-size: 18px; color: var(--ink); }

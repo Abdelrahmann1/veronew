@@ -26,6 +26,7 @@ const PLANS: Record<string, { name: string; amount: number }> = {
   review:      { name: "Document Review",           amount: 14900 },
   mentorship:  { name: "Full Mentorship",           amount: 34900 },
   accelerated: { name: "Accelerated Mentorship",    amount: 94900 },
+  test:        { name: "Test charge (£1)",          amount: 100 },   // TEMP: remove after go-live test
 };
 
 const CORS = {

@@ -136,10 +136,18 @@
     '1:1 Guidance': 'guidance',
     'Document Review': 'review',
     'Full Mentorship': 'mentorship',
-    'Accelerated Mentorship': 'accelerated'
+    'Accelerated Mentorship': 'accelerated',
+    'Test payment': 'test'              // TEMP: go-live test card, remove after
+  };
+  // TEMP go-live test card — only shown with ?test=1, sits next to the free card.
+  var TEST_CARD = {
+    name: 'Test payment', price: '£1', unit: 'live go-live test', note: 'Temporary',
+    cta: 'Pay £1 (test)', feature: false,
+    feats: ['Verifies the live Stripe checkout', 'Charges £1 to a real card', 'Fully refundable in Stripe', 'Remove after go-live']
   };
   // Plan id -> the contact form's "Interested in" option (demo fallback).
   var PLAN_INTEREST = {
+    test: 'Test payment',
     assessment: 'Global Talent Assessment',
     guidance: '1:1 Guidance',
     review: 'Document Review',
@@ -211,7 +219,9 @@
   }
 
   function renderPricing() {
-    var html = pricing.map(function (p) {
+    var list = pricing.slice();
+    if (new URLSearchParams(location.search).get('test') === '1') list.splice(1, 0, TEST_CARD);
+    var html = list.map(function (p) {
       var feats = p.feats.map(function (ft) {
         return '<div class="feat">' + CHECK + '<span>' + esc(ft) + '</span></div>';
       }).join('');
