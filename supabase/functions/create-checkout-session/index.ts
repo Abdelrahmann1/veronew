@@ -26,7 +26,6 @@ const PLANS: Record<string, { name: string; amount: number }> = {
   review:      { name: "Document Review",           amount: 14900 },
   mentorship:  { name: "Full Mentorship",           amount: 34900 },
   accelerated: { name: "Accelerated Mentorship",    amount: 94900 },
-  test:        { name: "Test charge (£1)",          amount: 100 },   // TEMP: remove after go-live test
 };
 
 const CORS = {
@@ -80,7 +79,7 @@ Deno.serve(async (req) => {
         },
       }],
       metadata: { plan, user_id: userId, booking_at: bookingAt || "" },
-      success_url: `${base}/index.html?paid=1`,
+      success_url: `${base}/thankyou.html`,
       cancel_url: `${base}/index.html?canceled=1`,
     });
     return new Response(JSON.stringify({ url: session.url }), {

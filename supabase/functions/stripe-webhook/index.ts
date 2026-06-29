@@ -9,6 +9,7 @@
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createCalendarEvent } from "../_shared/google-calendar.ts";
+import { sendEmail, paymentConfirmationHtml } from "../_shared/send-email.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   apiVersion: "2024-06-20",
@@ -49,6 +50,32 @@ Deno.serve(async (req) => {
       user_id: s.metadata?.user_id || null,
     }], { onConflict: "stripe_session_id" });
     if (error) return new Response(`DB error: ${error.message}`, { status: 500 });
+
+    // Send the buyer a branded confirmation email (best-effort).
+    const buyerEmail = s.customer_details?.email;
+    if (buyerEmail) {
+      try {
+        const when = s.metadata?.booking_at
+          ? new Date(s.metadata.booking_at).toLocaleString("en-GB", {
+              timeZone: Deno.env.get("GOOGLE_TIMEZONE") ?? "Europe/London",
+              weekday: "short", day: "2-digit", month: "short", year: "numeric",
+              hour: "2-digit", minute: "2-digit",
+            })
+          : undefined;
+        await sendEmail({
+          to: buyerEmail,
+          subject: "Payment confirmed — Thank you for joining GTR by Vero UK",
+          html: paymentConfirmationHtml({
+            name: s.customer_details?.name,
+            plan: s.metadata?.plan,
+            amount: "£" + (((s.amount_total ?? 0) / 100).toFixed(2)),
+            bookingWhen: when,
+          }),
+        });
+      } catch (e) {
+        console.error("email send failed:", e);
+      }
+    }
 
     // Mirror the paid booking into the admin's Google Calendar (best-effort:
     // never fail the webhook if calendar sync errors or isn't configured).

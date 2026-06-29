@@ -137,17 +137,10 @@
     'Document Review': 'review',
     'Full Mentorship': 'mentorship',
     'Accelerated Mentorship': 'accelerated',
-    'Test payment': 'test'              // TEMP: go-live test card, remove after
   };
-  // TEMP go-live test card — only shown with ?test=1, sits next to the free card.
-  var TEST_CARD = {
-    name: 'Test payment', price: '£1', unit: 'live go-live test', note: 'Temporary',
-    cta: 'Pay £1 (test)', feature: false,
-    feats: ['Verifies the live Stripe checkout', 'Charges £1 to a real card', 'Fully refundable in Stripe', 'Remove after go-live']
-  };
+
   // Plan id -> the contact form's "Interested in" option (demo fallback).
   var PLAN_INTEREST = {
-    test: 'Test payment',
     assessment: 'Global Talent Assessment',
     guidance: '1:1 Guidance',
     review: 'Document Review',
@@ -159,8 +152,13 @@
   var current = 'home';
 
   function go(page) {
-    current = page;
     var pages = document.querySelectorAll('.page');
+    if (!pages.length) {
+      // Not the single-page app (e.g. the thank-you page) → jump to the real site.
+      window.location.href = 'index.html' + (page && page !== 'home' ? '#' + page : '');
+      return;
+    }
+    current = page;
     for (var i = 0; i < pages.length; i++) {
       pages[i].classList.toggle('is-active', pages[i].getAttribute('data-page') === page);
     }
@@ -220,7 +218,6 @@
 
   function renderPricing() {
     var list = pricing.slice();
-    if (new URLSearchParams(location.search).get('test') === '1') list.splice(1, 0, TEST_CARD);
     var html = list.map(function (p) {
       var feats = p.feats.map(function (ft) {
         return '<div class="feat">' + CHECK + '<span>' + esc(ft) + '</span></div>';
@@ -570,13 +567,12 @@
     var t = el('pay-toast'); if (!t) return;
     el('pay-toast-text').textContent = msg; t.hidden = false;
   }
-  function initParams() {
-    var p = new URLSearchParams(location.search);
-    if (p.get('paid') === '1') showToast('Payment received — thank you. We will be in touch shortly.');
-    else if (p.get('canceled') === '1') showToast('Checkout canceled — no charge was made.');
-    if (p.has('paid') || p.has('canceled')) history.replaceState({}, '', location.pathname);
-  }
-
+function initParams() {
+  var p = new URLSearchParams(location.search);
+  if (p.get('paid') === '1') window.location.replace('thankyou.html');
+  else if (p.get('canceled') === '1') showToast('Checkout canceled — no charge was made.');
+  if (p.has('paid') || p.has('canceled')) history.replaceState({}, '', location.pathname);
+}
   /* ---------- Delegated clicks ---------- */
   document.addEventListener('click', function (e) {
     if (e.target.closest('#nav-burger')) { toggleMenu(); return; }
@@ -649,7 +645,12 @@
       B().onAuthChange(async function (u) { authUser = u; authIsAdmin = u ? await B().isAdmin() : false; renderAuthSlot(); prefillFromUser(); });
       refreshAuth();
     }
-    go('home');
+    // Only run SPA routing on the single-page site. Standalone pages
+    // (thank-you, etc.) have no .page sections — leave them as-is.
+    if (document.querySelector('.page')) {
+      var hash = (location.hash || '').replace('#', '');
+      go(navDefs.some(function (n) { return n.key === hash; }) ? hash : 'home');
+    }
   }
 
   if (document.readyState === 'loading') {
