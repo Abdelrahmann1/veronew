@@ -3,17 +3,15 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
       "**/.*",
       "**/node_modules/**",
       "supabase/**",
+      "public/**",
       "*.md",
-      "serve.py"
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css|jpeg|jpg|png|svg|webp|ico)",
-        "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
-      }
+      "serve.py",
+      "package.json",
+      "package-lock.json"
     ]
   }
 }
