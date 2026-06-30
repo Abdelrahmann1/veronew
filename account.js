@@ -146,7 +146,13 @@
       var msg = r.message
         ? '<div class="detail-msg"><div class="detail-label">Message</div><div class="detail-value">' + esc(r.message) + '</div></div>'
         : '';
-      return '<div class="detail-card">' + head + grid + msg + '</div>';
+      // Clients can cancel a booked meeting (one with a date/time) that
+      // hasn't already been cancelled or closed.
+      var canCancel = r.booking_at && r.status !== 'cancelled' && r.status !== 'closed';
+      var cancelBtn = canCancel
+        ? '<div class="detail-msg"><button class="btn btn--xs btn--ghost-dark" data-cancel="' + esc(r.id) + '">Cancel booking</button></div>'
+        : '';
+      return '<div class="detail-card">' + head + grid + msg + cancelBtn + '</div>';
     }).join('');
     return section('Your requests &amp; bookings', cards);
   }
@@ -180,6 +186,16 @@
   document.addEventListener('click', async function (e) {
     var out = e.target.closest('[data-signout]');
     if (out) { await B.signOut(); location.href = 'index.html'; return; }
+    var cancel = e.target.closest('[data-cancel]');
+    if (cancel) {
+      if (!window.confirm('Cancel this booking? This cannot be undone. If you paid, contact us about a refund.')) return;
+      var id = cancel.getAttribute('data-cancel');
+      cancel.textContent = 'Cancelling…'; cancel.disabled = true;
+      var r = await B.cancelBooking(id);
+      if (r.ok) { await loadData(); }
+      else { cancel.textContent = 'Cancel booking'; cancel.disabled = false; alert('Could not cancel: ' + (r.error || '')); }
+      return;
+    }
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

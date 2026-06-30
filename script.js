@@ -320,14 +320,22 @@
     updateSubmitLabel();
   }
 
-  // Submit button reads "Continue to payment" for paid services, "Submit
-  // enquiry" otherwise — so a payment step is never a surprise.
+  // Paid services need a date/time + payment ("Continue to payment"); every
+  // free option (snapshot, webinar, "not sure") is a simple "Send" with no
+  // booking — so the date/time field only shows for paid services.
+  function selectedIsPaid() {
+    var sel = document.querySelector('#contact-form select[name="interest"]');
+    return !!(sel && PLAN_ID[sel.value]);
+  }
   function updateSubmitLabel() {
     var form = el('contact-form'); if (!form) return;
     var sel = form.querySelector('select[name="interest"]');
     var btn = form.querySelector('button[type="submit"]');
     if (!sel || !btn) return;
-    btn.textContent = PLAN_ID[sel.value] ? 'Continue to payment →' : 'Submit enquiry';
+    var paid = !!PLAN_ID[sel.value];
+    btn.textContent = paid ? 'Continue to payment →' : 'Send';
+    var row = el('booking-field-row');
+    if (row) row.hidden = !paid;
   }
 
   async function handleCheckout(planId, btn, bookingAt) {
@@ -453,7 +461,7 @@
     var fd = new FormData(form);
     var data = {};
     fd.forEach(function (v, k) { if (k !== 'cv') data[k] = v; });
-    if (!isWebinarEnquiry() && !data.booking_at) {   // bookings need a slot; webinars don't
+    if (PLAN_ID[data.interest] && !data.booking_at) {   // only paid services need a slot
       showToast('Please choose a preferred date & time first.');
       openBooking(function (iso) { setContactBooking(iso); }, null);
       return;
@@ -490,11 +498,12 @@
   function initForm() {
     var form = el('contact-form');
     if (form) {
-      // Bookings need an account; webinar signups are free & open (no account).
+      // Only PAID services need an account first; free options (snapshot,
+      // webinar, general enquiry) submit straight away as a guest.
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (isWebinarEnquiry()) submitContact();
-        else requireAuthThen(submitContact);
+        if (selectedIsPaid()) requireAuthThen(submitContact);
+        else submitContact();
       });
       var interestSel = form.querySelector('select[name="interest"]');
       if (interestSel) interestSel.addEventListener('change', updateSubmitLabel);
@@ -648,9 +657,9 @@ function initParams() {
       var page = navBtn.getAttribute('data-nav');
       var intent = navBtn.getAttribute('data-intent');
       var act = function () { go(page); if (intent) preselectInterest(intent); };
-      // Booking CTAs (.btn → contact) require an account; the webinar CTA is
-      // open to guests. Plain nav-menu links and info pages stay open.
-      if (page === 'contact' && navBtn.classList.contains('btn') && intent !== 'Webinar') requireAuthThen(act);
+      // Only PAID-service CTAs require an account first; free options
+      // (snapshot, webinar, general enquiry) go straight to the form.
+      if (page === 'contact' && navBtn.classList.contains('btn') && intent && PLAN_ID[intent]) requireAuthThen(act);
       else act();
       return;
     }

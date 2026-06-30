@@ -78,6 +78,7 @@
 .pill-closed    { background: #ececec; color: #666; }
 .pill-paid      { background: #dcefe0; color: #256b3c; }
 .pill-refunded  { background: #f3e2c8; color: #8a5a16; }
+.pill-cancelled { background: #f3d9d9; color: #9a2b2b; }
 .dash-link { color: var(--vero-coral); text-decoration: none; }
 .dash-link:hover { text-decoration: underline; }
 

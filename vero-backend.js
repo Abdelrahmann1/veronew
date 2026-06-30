@@ -171,6 +171,13 @@
     var r = await client.from('submissions').update({ status: status }).eq('id', id);
     return { ok: !r.error, error: r.error && r.error.message };
   }
+  // A signed-in client cancels their OWN booking. RLS (submissions_cancel_own)
+  // ensures they can only set status to 'cancelled' on their own rows.
+  async function cancelBooking(id) {
+    if (!client) return { ok: false, error: 'Not connected.' };
+    var r = await client.from('submissions').update({ status: 'cancelled' }).eq('id', id);
+    return { ok: !r.error, error: r.error && r.error.message };
+  }
   async function cvUrl(path) {
     if (!client || !path) return null;
     var r = await client.storage.from('cvs').createSignedUrl(path, 3600);
@@ -191,6 +198,7 @@
     listSubmissions: listSubmissions,
     listPayments: listPayments,
     setSubmissionStatus: setSubmissionStatus,
+    cancelBooking: cancelBooking,
     cvUrl: cvUrl
   };
 })();
