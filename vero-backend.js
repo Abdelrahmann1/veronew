@@ -178,6 +178,12 @@
     var r = await client.from('submissions').update({ status: 'cancelled' }).eq('id', id);
     return { ok: !r.error, error: r.error && r.error.message };
   }
+  // Cancel a paid booking from the payments table (RLS: payments_cancel_own).
+  async function cancelPayment(id) {
+    if (!client) return { ok: false, error: 'Not connected.' };
+    var r = await client.from('payments').update({ status: 'cancelled' }).eq('id', id);
+    return { ok: !r.error, error: r.error && r.error.message };
+  }
   async function cvUrl(path) {
     if (!client || !path) return null;
     var r = await client.storage.from('cvs').createSignedUrl(path, 3600);
@@ -199,6 +205,7 @@
     listPayments: listPayments,
     setSubmissionStatus: setSubmissionStatus,
     cancelBooking: cancelBooking,
+    cancelPayment: cancelPayment,
     cvUrl: cvUrl
   };
 })();

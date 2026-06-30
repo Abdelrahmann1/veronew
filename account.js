@@ -161,12 +161,14 @@
   function paymentsSection() {
     if (!state.pays.length) return section('Your payments', emptyCard('No payments yet.'));
     var rows = state.pays.map(function (r) {
+      var canCancel = r.booking_at && r.status === 'paid';
+      var action = canCancel ? '<button class="btn btn--xs btn--ghost-dark" data-cancel-pay="' + esc(r.id) + '">Cancel</button>' : '';
       return '<tr><td>' + esc(fmtDate(r.created_at)) + '</td><td>' + esc(r.booking_at ? fmtDate(r.booking_at) : '—') +
         '</td><td>' + esc(r.plan || r.package_name || '—') +
-        '</td><td>' + gbp(r.amount) + '</td><td>' + esc(r.status) + '</td></tr>';
+        '</td><td>' + gbp(r.amount) + '</td><td>' + esc(r.status) + '</td><td>' + action + '</td></tr>';
     }).join('');
     var t = '<div class="dash-card dash-scroll"><table class="dash-table"><thead><tr>' +
-      '<th>Date</th><th>Booked for</th><th>Plan</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+      '<th>Date</th><th>Booked for</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     return section('Your payments', t);
   }
 
@@ -194,6 +196,16 @@
       var r = await B.cancelBooking(id);
       if (r.ok) { await loadData(); }
       else { cancel.textContent = 'Cancel booking'; cancel.disabled = false; alert('Could not cancel: ' + (r.error || '')); }
+      return;
+    }
+    var cancelPay = e.target.closest('[data-cancel-pay]');
+    if (cancelPay) {
+      if (!window.confirm('Cancel this booking? This cannot be undone. Contact us about a refund.')) return;
+      var pid = cancelPay.getAttribute('data-cancel-pay');
+      cancelPay.textContent = 'Cancelling…'; cancelPay.disabled = true;
+      var rp = await B.cancelPayment(pid);
+      if (rp.ok) { await loadData(); }
+      else { cancelPay.textContent = 'Cancel'; cancelPay.disabled = false; alert('Could not cancel: ' + (rp.error || '')); }
       return;
     }
   });
