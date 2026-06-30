@@ -223,7 +223,7 @@
         return '<div class="feat">' + CHECK + '<span>' + esc(ft) + '</span></div>';
       }).join('');
       var planId = p.price === 'Free' ? null : PLAN_ID[p.name];
-      var action = planId ? 'data-checkout="' + planId + '"' : 'data-nav="contact"';
+      var action = planId ? 'data-checkout="' + planId + '"' : 'data-nav="contact" data-intent="Eligibility Snapshot"';
       return '<div class="price-card' + (p.feature ? ' price-card--feature' : '') + '">' +
         '<div class="eyebrow eyebrow--sm eyebrow--mb-sm">' + esc(p.note) + '</div>' +
         '<h3>' + esc(p.name) + '</h3>' +
@@ -251,7 +251,7 @@
         '<p class="service-desc">' + esc(s.desc) + '</p>' +
         '<div class="service-bestfor"><span class="service-bestfor-label">Best for</span>' +
         '<div class="service-bestfor-val">' + esc(s.bestFor) + '</div></div>' +
-        '<button class="btn btn--md btn--dark" data-nav="contact">' + esc(s.cta) + '</button></div>' +
+        '<button class="btn btn--md btn--dark" data-nav="contact" data-intent="' + esc(s.name) + '">' + esc(s.cta) + '</button></div>' +
         '<div class="service-side"><span class="service-includes-label">What is included</span>' +
         '<div class="include-list">' + includes + '</div></div></div>';
     }).join(''));
@@ -317,6 +317,17 @@
     for (var i = 0; i < sel.options.length; i++) {
       if (sel.options[i].value === val || sel.options[i].text === val) { sel.selectedIndex = i; break; }
     }
+    updateSubmitLabel();
+  }
+
+  // Submit button reads "Continue to payment" for paid services, "Submit
+  // enquiry" otherwise — so a payment step is never a surprise.
+  function updateSubmitLabel() {
+    var form = el('contact-form'); if (!form) return;
+    var sel = form.querySelector('select[name="interest"]');
+    var btn = form.querySelector('button[type="submit"]');
+    if (!sel || !btn) return;
+    btn.textContent = PLAN_ID[sel.value] ? 'Continue to payment →' : 'Submit enquiry';
   }
 
   async function handleCheckout(planId, btn, bookingAt) {
@@ -440,14 +451,28 @@
     var btn = form.querySelector('button[type="submit"]');
     var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
     var r = B() ? await B().submitEnquiry(data, file) : { ok: true, demo: true };
-    btn.textContent = old; btn.disabled = false;
-    if (r.ok) {
-      form.classList.add('is-hidden');
-      thanks.classList.add('is-visible');
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    } else {
+    if (!r.ok) {
+      btn.textContent = old; btn.disabled = false;
       showToast('Sorry — could not send your enquiry. ' + (r.error || ''));
+      return;
     }
+    // Paid service selected → enquiry saved, now take payment for it.
+    // The date/time chosen on the form is reused as the session time.
+    var planId = PLAN_ID[data.interest];
+    if (planId && B() && B().configured) {
+      btn.textContent = 'Redirecting to payment…';
+      var c = await B().startCheckout(planId, data.booking_at || null);
+      if (!c.ok) {
+        btn.textContent = old; btn.disabled = false;
+        showToast('Could not start payment: ' + (c.error || 'unknown error'));
+      }
+      return;   // on success Stripe redirects away
+    }
+    // Free enquiry / webinar / not sure yet → show the thank-you state.
+    btn.textContent = old; btn.disabled = false;
+    form.classList.add('is-hidden');
+    thanks.classList.add('is-visible');
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   function initForm() {
@@ -459,6 +484,9 @@
         if (isWebinarEnquiry()) submitContact();
         else requireAuthThen(submitContact);
       });
+      var interestSel = form.querySelector('select[name="interest"]');
+      if (interestSel) interestSel.addEventListener('change', updateSubmitLabel);
+      updateSubmitLabel();
     }
     var reset = el('reset-form');
     if (reset) {
@@ -467,6 +495,7 @@
         f.reset();
         thanks.classList.remove('is-visible');
         f.classList.remove('is-hidden');
+        updateSubmitLabel();
       });
     }
   }
