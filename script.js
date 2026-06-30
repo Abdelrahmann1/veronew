@@ -359,7 +359,19 @@
   function startOfToday() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
   function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
   function fmtSlot(iso) {
-    return new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (UK time)';
+  }
+  // Booking slots are FIXED UK (Europe/London) times, so the same slot is the
+  // same moment for everyone wherever they are. Convert a chosen UK wall-clock
+  // time to a correct UTC ISO string (handles BST/GMT automatically).
+  function tzOffsetMs(timeZone, date) {
+    var utc = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
+    var loc = new Date(date.toLocaleString('en-US', { timeZone: timeZone })).getTime();
+    return loc - utc;
+  }
+  function ukSlotToISO(y, m, d, hh, mm) {
+    var guess = Date.UTC(y, m, d, hh, mm);
+    return new Date(guess - tzOffsetMs('Europe/London', new Date(guess))).toISOString();
   }
 
   function openBooking(cb, presetISO) {
@@ -407,9 +419,9 @@
     box.innerHTML = SLOT_GROUPS.map(function (g) {
       var btns = g.times.map(function (t) {
         var p = t.split(':');
-        var dt = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
-        var passed = isToday && dt <= now;
-        var sel = bookingISO && new Date(bookingISO).getTime() === dt.getTime();
+        var iso = ukSlotToISO(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
+        var passed = isToday && new Date(iso).getTime() <= now.getTime();
+        var sel = bookingISO === iso;
         return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
       }).join('');
       return '<div class="slots-group"><div class="slots-group__label">' + g.label + '</div><div class="slots-grid">' + btns + '</div></div>';
@@ -616,7 +628,7 @@ function initParams() {
     var calDay = e.target.closest('[data-cal-day]');
     if (calDay) { bookingDay = new Date(bookingView.getFullYear(), bookingView.getMonth(), +calDay.getAttribute('data-cal-day')); bookingISO = null; renderBookingCal(); renderBookingSlots(); updateBookingSummary(); var cc = el('booking-confirm'); if (cc) cc.disabled = true; return; }
     var slotBtn = e.target.closest('[data-slot]');
-    if (slotBtn) { var sp = slotBtn.getAttribute('data-slot').split(':'); bookingISO = new Date(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +sp[0], +sp[1]).toISOString(); renderBookingSlots(); updateBookingSummary(); var cf = el('booking-confirm'); if (cf) cf.disabled = false; return; }
+    if (slotBtn) { var sp = slotBtn.getAttribute('data-slot').split(':'); bookingISO = ukSlotToISO(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +sp[0], +sp[1]); renderBookingSlots(); updateBookingSummary(); var cf = el('booking-confirm'); if (cf) cf.disabled = false; return; }
     if (e.target.closest('#booking-confirm')) { if (!bookingISO) return; var cb = bookingCb; bookingCb = null; closeBooking(); if (cb) cb(bookingISO); return; }
     var ao = e.target.closest('[data-auth-open]');
     if (ao) { openAuth(ao.getAttribute('data-auth-open') || 'signin'); return; }
