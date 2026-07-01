@@ -7,6 +7,7 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createCalendarEvent } from "../_shared/google-calendar.ts";
+import { sendEmail, meetingClientHtml, meetingStaffHtml, STAFF_NOTIFY_EMAIL } from "../_shared/send-email.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -24,7 +25,7 @@ const json = (b: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
-    const { userToken, summary, description, startISO } = await req.json();
+    const { userToken, summary, description, startISO, name, email, note } = await req.json();
 
     // Only a signed-in user may schedule (form bookings are gated behind auth).
     if (!userToken) return json({ error: "Unauthorized" }, 401);
@@ -33,11 +34,38 @@ Deno.serve(async (req) => {
 
     if (!startISO) return json({ ok: true, skipped: "no booking time" });
 
-    await createCalendarEvent({
+    const { meetLink } = await createCalendarEvent({
       summary: summary || "GTR booking",
       description: description || "",
       startISO,
     });
+
+    // Email the client + a staff copy with the Meet link (best-effort — a
+    // failed email never blocks the booking, which already succeeded above).
+    if (meetLink) {
+      const whenText = new Date(startISO).toLocaleString("en-GB", {
+        timeZone: Deno.env.get("GOOGLE_TIMEZONE") ?? "Europe/London",
+        weekday: "short", day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+      const clientEmail = email || data.user.email;
+      try {
+        if (clientEmail) {
+          await sendEmail({
+            to: clientEmail,
+            subject: "Your session with GTR by Vero UK is booked",
+            html: meetingClientHtml({ name, whenText, meetLink }),
+          });
+        }
+        await sendEmail({
+          to: STAFF_NOTIFY_EMAIL,
+          subject: "New booking — " + (name || clientEmail || "Client"),
+          html: meetingStaffHtml({ name, email: clientEmail, whenText, meetLink, note }),
+        });
+      } catch (e) {
+        console.error("meeting-link email failed:", e);
+      }
+    }
     return json({ ok: true });
   } catch (e) {
     return json({ error: String(e) }, 500);

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "veronew-dev",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["serve.py", "5050"],
+      "port": 5050
+    }
+  ]
+}

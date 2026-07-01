@@ -8,7 +8,7 @@
   'use strict';
 
   var B = window.VeroBackend;
-  var state = { subs: [], pays: [], mode: 'signin' };
+  var state = { subs: [], pays: [], mode: 'signin', pendingEmail: null };
 
   function el(id) { return document.getElementById(id); }
   function show(id) { var n = el(id); if (n) n.hidden = false; }
@@ -67,8 +67,10 @@
       btn.textContent = old; btn.disabled = false;
       if (!r.ok) { err.textContent = r.error || 'Something went wrong.'; err.hidden = false; return; }
       if (state.mode === 'signup' && r.needsConfirm) {
-        ok.textContent = 'Account created — check your email to confirm, then sign in.';
-        ok.hidden = false; setMode('signin'); f.reset(); return;
+        state.pendingEmail = f.email.value;
+        f.reset();
+        openOtp();
+        return;
       }
       // Go straight to the account view — don't reload (a reload can lose
       // the session when the page is opened via file://).
@@ -77,6 +79,49 @@
       if (r.isAdmin) { location.replace('dashboard.html'); return; }
       await enter(r.user);
     });
+    wireOtp();
+  }
+
+  /* ---------- Signup confirmation (email OTP) ---------- */
+  function openOtp() {
+    hide('gate-form');
+    el('gate-toggle').parentElement.hidden = true;
+    el('gate-otp-email').textContent = state.pendingEmail;
+    el('gate-title').textContent = 'Confirm your email';
+    show('gate-otp-form');
+    var i = el('gate-otp-form').querySelector('input[name="otp"]'); if (i) i.focus();
+  }
+  function closeOtp() {
+    hide('gate-otp-form');
+    el('gate-toggle').parentElement.hidden = false;
+    show('gate-form');
+    setMode('signin');
+  }
+  function wireOtp() {
+    var f = el('gate-otp-form');
+    if (!f || f.__wired) return; f.__wired = true;
+    f.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var err = el('gate-otp-error'); err.hidden = true;
+      var btn = el('gate-otp-submit'); var old = btn.textContent; btn.textContent = 'Verifying…'; btn.disabled = true;
+      var r = await B.confirmSignUp(state.pendingEmail, f.otp.value.trim());
+      btn.textContent = old; btn.disabled = false;
+      if (!r.ok) { err.textContent = r.error || 'That code is incorrect or has expired.'; err.hidden = false; return; }
+      f.reset();
+      state.pendingEmail = null;
+      hide('gate-otp-form');
+      if (r.isAdmin) { location.replace('dashboard.html'); return; }
+      await enter(r.user);
+    });
+    el('gate-otp-resend').addEventListener('click', async function () {
+      var btn = el('gate-otp-resend'); var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
+      var r = await B.resendSignUpCode(state.pendingEmail);
+      btn.textContent = old; btn.disabled = false;
+      var err = el('gate-otp-error');
+      err.textContent = r.ok ? 'A new code has been sent.' : (r.error || 'Could not resend the code.');
+      err.hidden = false;
+    });
+    el('gate-otp-back').addEventListener('click', function () { state.pendingEmail = null; closeOtp(); });
   }
 
   /* ---------- Data ---------- */
@@ -165,7 +210,7 @@
       var action = canCancel ? '<button class="btn btn--xs btn--ghost-dark" data-cancel-pay="' + esc(r.id) + '">Cancel</button>' : '';
       return '<tr><td>' + esc(fmtDate(r.created_at)) + '</td><td>' + esc(r.booking_at ? fmtDate(r.booking_at) : '—') +
         '</td><td>' + esc(r.plan || r.package_name || '—') +
-        '</td><td>' + gbp(r.amount) + '</td><td>' + esc(r.status) + '</td><td>' + action + '</td></tr>';
+        '</td><td>' + gbp(r.amount) + '</td><td>' + esc(r.status) + '</td><td class="cell-center">' + action + '</td></tr>';
     }).join('');
     var t = '<div class="dash-card dash-scroll"><table class="dash-table"><thead><tr>' +
       '<th>Date</th><th>Booked for</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';

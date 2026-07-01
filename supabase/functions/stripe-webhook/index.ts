@@ -9,7 +9,7 @@
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createCalendarEvent } from "../_shared/google-calendar.ts";
-import { sendEmail, paymentConfirmationHtml } from "../_shared/send-email.ts";
+import { sendEmail, paymentConfirmationHtml, meetingStaffHtml, STAFF_NOTIFY_EMAIL } from "../_shared/send-email.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
   apiVersion: "2024-06-20",
@@ -51,38 +51,14 @@ Deno.serve(async (req) => {
     }], { onConflict: "stripe_session_id" });
     if (error) return new Response(`DB error: ${error.message}`, { status: 500 });
 
-    // Send the buyer a branded confirmation email (best-effort).
-    const buyerEmail = s.customer_details?.email;
-    if (buyerEmail) {
-      try {
-        const when = s.metadata?.booking_at
-          ? new Date(s.metadata.booking_at).toLocaleString("en-GB", {
-              timeZone: Deno.env.get("GOOGLE_TIMEZONE") ?? "Europe/London",
-              weekday: "short", day: "2-digit", month: "short", year: "numeric",
-              hour: "2-digit", minute: "2-digit",
-            })
-          : undefined;
-        await sendEmail({
-          to: buyerEmail,
-          subject: "Payment confirmed — Thank you for joining GTR by Vero UK",
-          html: paymentConfirmationHtml({
-            name: s.customer_details?.name,
-            plan: s.metadata?.plan,
-            amount: "£" + (((s.amount_total ?? 0) / 100).toFixed(2)),
-            bookingWhen: when,
-          }),
-        });
-      } catch (e) {
-        console.error("email send failed:", e);
-      }
-    }
-
     // Mirror the paid booking into the admin's Google Calendar (best-effort:
     // never fail the webhook if calendar sync errors or isn't configured).
+    // Done before the buyer email so a Meet link (if created) can be included.
     const bookingAt = s.metadata?.booking_at || "";
+    let meetLink: string | null = null;
     if (bookingAt) {
       try {
-        await createCalendarEvent({
+        const result = await createCalendarEvent({
           summary: "GTR booking — " +
             (s.customer_details?.name || s.customer_details?.email || "Client") +
             " (" + (s.metadata?.plan || "") + ")",
@@ -94,8 +70,57 @@ Deno.serve(async (req) => {
             "Amount: £" + (((s.amount_total ?? 0) / 100).toFixed(2)),
           startISO: bookingAt,
         });
+        meetLink = result.meetLink;
       } catch (e) {
         console.error("calendar sync failed:", e);
+      }
+    }
+
+    const when = bookingAt
+      ? new Date(bookingAt).toLocaleString("en-GB", {
+          timeZone: Deno.env.get("GOOGLE_TIMEZONE") ?? "Europe/London",
+          weekday: "short", day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        })
+      : undefined;
+
+    // Send the buyer a branded confirmation email (includes the Meet link,
+    // if one was created above) — best-effort.
+    const buyerEmail = s.customer_details?.email;
+    if (buyerEmail) {
+      try {
+        await sendEmail({
+          to: buyerEmail,
+          subject: "Payment confirmed — Thank you for joining GTR by Vero UK",
+          html: paymentConfirmationHtml({
+            name: s.customer_details?.name,
+            plan: s.metadata?.plan,
+            amount: "£" + (((s.amount_total ?? 0) / 100).toFixed(2)),
+            bookingWhen: when,
+            meetLink,
+          }),
+        });
+      } catch (e) {
+        console.error("email send failed:", e);
+      }
+    }
+
+    // Staff copy of the meeting link, same as free/form bookings.
+    if (meetLink) {
+      try {
+        await sendEmail({
+          to: STAFF_NOTIFY_EMAIL,
+          subject: "New paid booking — " + (s.customer_details?.name || buyerEmail || "Client"),
+          html: meetingStaffHtml({
+            name: s.customer_details?.name,
+            email: buyerEmail,
+            whenText: when,
+            meetLink,
+            note: s.metadata?.plan,
+          }),
+        });
+      } catch (e) {
+        console.error("staff notification email failed:", e);
       }
     }
   }

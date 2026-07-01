@@ -32,6 +32,19 @@
         <span id="gate-toggle-text">New here?</span>
         <button class="link-btn" id="gate-toggle" data-gate-toggle>Create an account</button>
       </p>
+
+      <!-- Shown after signup: enter the code emailed to the new account -->
+      <form class="form" id="gate-otp-form" hidden>
+        <p class="modal__note">Enter the 6-digit code we emailed to <strong id="gate-otp-email"></strong>.</p>
+        <label class="field"><span>Code</span><input name="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code"/></label>
+        <div class="auth-error" id="gate-otp-error" hidden></div>
+        <button type="submit" class="btn btn--lg btn--dark btn--block" id="gate-otp-submit">Verify &amp; continue</button>
+        <p class="modal__note">
+          <button type="button" class="link-btn" id="gate-otp-resend">Resend code</button>
+          &nbsp;·&nbsp;
+          <button type="button" class="link-btn" id="gate-otp-back">Back to sign in</button>
+        </p>
+      </form>
       <p class="gate-note" id="gate-note"><a class="dash-link" href="index.html">← Back to site</a></p>
     </div>
   </div>

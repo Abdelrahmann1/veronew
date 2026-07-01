@@ -489,11 +489,24 @@
       <div class="auth-ok" id="auth-ok" hidden></div>
       <button type="submit" class="btn btn--lg btn--dark btn--block" id="auth-submit">Sign in</button>
     </form>
-    <p class="modal__note">
+    <p class="modal__note" id="auth-toggle-wrap">
       <span id="auth-toggle-text">New here?</span>
       <button class="link-btn" id="auth-toggle" data-auth-toggle>Create an account</button>
     </p>
-    <p class="modal__note">Creating an account lets you track your enquiry and payments. You can also enquire or pay as a guest.</p>
+    <p class="modal__note" id="auth-guest-note">Creating an account lets you track your enquiry and payments. You can also enquire or pay as a guest.</p>
+
+    <!-- Shown after signup: enter the code emailed to the new account -->
+    <form class="form" id="auth-otp-form" hidden>
+      <p class="modal__note">Enter the 6-digit code we emailed to <strong id="auth-otp-email"></strong>.</p>
+      <label class="field"><span>Code</span><input name="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code"/></label>
+      <div class="auth-error" id="auth-otp-error" hidden></div>
+      <button type="submit" class="btn btn--lg btn--dark btn--block" id="auth-otp-submit">Verify &amp; continue</button>
+      <p class="modal__note">
+        <button type="button" class="link-btn" id="auth-otp-resend">Resend code</button>
+        &nbsp;·&nbsp;
+        <button type="button" class="link-btn" id="auth-otp-back">Back to sign in</button>
+      </p>
+    </form>
   </div>
 </div>
 

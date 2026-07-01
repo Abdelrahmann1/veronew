@@ -58,7 +58,10 @@
           summary: 'GTR booking — ' + (row.name || 'Client') + (row.interest ? ' (' + row.interest + ')' : ''),
           description: 'Enquiry booking\nClient: ' + (row.name || '') + '\nEmail: ' + (row.email || '') +
             '\nInterest: ' + (row.interest || '') + '\nCountry: ' + (row.country || ''),
-          startISO: row.booking_at
+          startISO: row.booking_at,
+          name: row.name,
+          email: row.email,
+          note: row.interest
         });
       }
       return { ok: !ins.error, error: ins.error && ins.error.message };
@@ -77,7 +80,10 @@
       await fetch(cfg.SUPABASE_URL + '/functions/v1/add-to-calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY },
-        body: JSON.stringify({ userToken: token, summary: details.summary, description: details.description, startISO: details.startISO })
+        body: JSON.stringify({
+          userToken: token, summary: details.summary, description: details.description, startISO: details.startISO,
+          name: details.name, email: details.email, note: details.note
+        })
       });
     } catch (e) { /* non-fatal */ }
   }
@@ -140,6 +146,22 @@
     // When email confirmation is on, there is no session until the user confirms.
     return { ok: true, user: r.data.user, needsConfirm: !r.data.session };
   }
+  // Confirms a signup using the 6-digit code emailed to the user (Supabase's
+  // "Confirm signup" template must show {{ .Token }} — see SETUP.md).
+  // Success returns a real session, so the caller can sign the user straight in.
+  async function confirmSignUp(email, token) {
+    if (!client) return { ok: false, demo: true, error: 'Backend not configured yet.' };
+    var r = await client.auth.verifyOtp({ email: email, token: token, type: 'signup' });
+    if (r.error) return { ok: false, error: r.error.message };
+    _adminCache = null;
+    return { ok: true, user: r.data.user, isAdmin: await isAdmin(true) };
+  }
+  // Re-sends the signup confirmation code (rate-limited server-side by Supabase).
+  async function resendSignUpCode(email) {
+    if (!client) return { ok: false, demo: true };
+    var r = await client.auth.resend({ type: 'signup', email: email });
+    return { ok: !r.error, error: r.error && r.error.message };
+  }
   async function signOut() { _adminCache = null; if (client) await client.auth.signOut(); }
   async function currentUser() {
     if (!client) return null;
@@ -196,6 +218,8 @@
     startCheckout: startCheckout,
     signIn: signIn,
     signUp: signUp,
+    confirmSignUp: confirmSignUp,
+    resendSignUpCode: resendSignUpCode,
     signOut: signOut,
     currentUser: currentUser,
     currentAdmin: currentAdmin,

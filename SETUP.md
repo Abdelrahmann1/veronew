@@ -41,9 +41,22 @@ repo — it is stored only as a Supabase function secret that *you* set.
 Visitors can optionally **sign up / sign in** from the site (nav "Sign in" or the
 account page) to track their own enquiries and payments — guests can still enquire
 and pay without an account.
-- Email sign-ups are **on by default** in Supabase. For instant access during testing,
-  you can turn off **Authentication → Providers → Email → "Confirm email"** (otherwise
-  new clients must click a confirmation link before signing in).
+- Email sign-ups are **on by default** in Supabase, with **"Confirm email"** required —
+  new clients confirm with a **6-digit code emailed to them** (entered right on the
+  site, no separate page). For instant access during testing, you can turn this off at
+  **Authentication → Providers → Email → "Confirm email"**.
+- **Required for the code to actually appear in the email:** Supabase's default
+  "Confirm signup" template only shows a clickable link. Go to **Authentication →
+  Email Templates → Confirm signup** and edit the body so it includes `{{ .Token }}`,
+  e.g.:
+  ```
+  <h2>Confirm your signup</h2>
+  <p>Your confirmation code is: <strong>{{ .Token }}</strong></p>
+  <p>Enter it on the site to finish creating your account.</p>
+  ```
+  (Keep or remove `{{ .ConfirmationURL }}` as you like — the site only asks for the code.)
+- Codes expire after **1 hour** by default (**Authentication → Providers → Email →
+  "Email OTP Expiration"** to change it) and can be resent from the same screen.
 - A signed-in client sees only their own rows (enforced by RLS); the admin sees all.
 
 ## 4. Stripe (test mode)
@@ -78,7 +91,15 @@ supabase functions deploy stripe-webhook --no-verify-jwt
 
 ## 6b. Google Calendar sync (optional — auto-add bookings to your calendar)
 Bookings (form bookings with a date/time, and paid bookings) are auto-added to
-your Google Calendar via a **service account**.
+your Google Calendar via a **service account**, and each event includes an
+auto-generated **Google Meet** link.
+
+Once the event is created, the meeting link is emailed to **both** the client
+who booked **and** a fixed staff address (`info@vero-official.com`, set in
+[`supabase/functions/_shared/send-email.ts`](supabase/functions/_shared/send-email.ts)
+as `STAFF_NOTIFY_EMAIL` — change it there if this address ever changes). This
+reuses the `RESEND_API_KEY` / `FROM_EMAIL` secrets already set up for payment
+emails (step 4/5) — no extra secrets needed for the meeting-link emails.
 
 1. **Google Cloud Console** → create/select a project → **APIs & Services → Library**
    → enable **Google Calendar API**.

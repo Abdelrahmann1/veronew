@@ -33,6 +33,10 @@
 /* ---- Reset ---- */
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff; }
+/* JS toggles visibility with the `hidden` attribute. Several classes below
+   (.field, .form, .modal, etc.) set their own `display`, which would otherwise
+   beat the browser's [hidden] default — force hidden to always win. */
+[hidden] { display: none !important; }
 body {
   font-family: var(--font-body);
   color: var(--ink);
@@ -498,22 +502,18 @@ h1, h2, h3, p { margin: 0; }
    Auth modal + payment toast
    ============================================================ */
 .modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.modal[hidden] { display: none; }
 .modal__backdrop { position: absolute; inset: 0; background: rgba(20,18,14,.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .modal__card { position: relative; width: 100%; max-width: 420px; background: #fff; border-radius: 22px; padding: 36px; box-shadow: 0 30px 80px rgba(20,18,14,.35); animation: veroUp .3s cubic-bezier(.22,.61,.36,1) both; }
 .modal__close { position: absolute; top: 16px; right: 18px; background: none; border: none; cursor: pointer; font-size: 26px; line-height: 1; color: var(--muted); }
 .modal__title { font-family: var(--font-display); font-weight: 500; font-size: 28px; letter-spacing: -.6px; color: var(--ink); margin: 0 0 20px; line-height: 1.1; }
 .modal__note { font-size: 12px; line-height: 1.5; color: var(--muted); margin: 18px 0 0; }
 .auth-error { font-size: 13px; color: #b4341f; background: #fbeee9; border: 1px solid #f2cabd; border-radius: 8px; padding: 10px 12px; }
-.auth-error[hidden] { display: none; }
 
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 200; display: flex; align-items: center; gap: 14px; background: var(--ink-deep); color: #fff; border-radius: 999px; padding: 14px 18px 14px 24px; font-size: 14px; line-height: 1.4; box-shadow: 0 16px 40px rgba(20,18,14,.3); max-width: calc(100% - 32px); }
-.toast[hidden] { display: none; }
 .toast button { background: rgba(255,255,255,.14); border: none; color: #fff; cursor: pointer; width: 26px; height: 26px; border-radius: 50%; font-size: 16px; line-height: 1; flex: none; }
 
 .link-btn { background: none; border: none; padding: 0; cursor: pointer; font: inherit; color: var(--vero-coral); text-decoration: underline; }
 .auth-ok { font-size: 13px; color: #3f6b2e; background: #e9f1e3; border: 1px solid #cfe0c2; border-radius: 8px; padding: 10px 12px; }
-.auth-ok[hidden] { display: none; }
 
 /* ============================================================
    Booking date/time picker (calendar + time slots)

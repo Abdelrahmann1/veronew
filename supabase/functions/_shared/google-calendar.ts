@@ -70,7 +70,11 @@ export interface CalendarEvent {
   durationMin?: number;   // default 30
 }
 
-export async function createCalendarEvent(ev: CalendarEvent): Promise<void> {
+export interface CalendarEventResult {
+  meetLink: string | null;   // Google Meet join link, if one was created
+}
+
+export async function createCalendarEvent(ev: CalendarEvent): Promise<CalendarEventResult> {
   const calendarId = Deno.env.get("GOOGLE_CALENDAR_ID") ?? "";
   if (!calendarId) throw new Error("GOOGLE_CALENDAR_ID is not set");
   const tz = Deno.env.get("GOOGLE_TIMEZONE") ?? "Europe/London";
@@ -86,10 +90,16 @@ export async function createCalendarEvent(ev: CalendarEvent): Promise<void> {
     end: { dateTime: end.toISOString(), timeZone: tz },
     // NB: no attendees — service accounts can't send invites without
     // domain-wide delegation; client details go in the description instead.
+    conferenceData: {
+      createRequest: {
+        requestId: crypto.randomUUID(),
+        conferenceSolutionKey: { type: "hangoutsMeet" },
+      },
+    },
   };
 
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1`,
     {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
@@ -97,4 +107,6 @@ export async function createCalendarEvent(ev: CalendarEvent): Promise<void> {
     },
   );
   if (!res.ok) throw new Error("Calendar insert failed (" + res.status + "): " + (await res.text()));
+  const data = await res.json();
+  return { meetLink: data.hangoutLink ?? null };
 }

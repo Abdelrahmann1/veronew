@@ -526,6 +526,7 @@
   var authIsAdmin = false;   // mirrors the server-side is_admin() result for UI only
   var authMode = 'signin';
   var pendingAction = null;   // runs after a logged-out user signs up/in via a gated action
+  var pendingAuthEmail = null; // email awaiting OTP confirmation after signup
 
   // Gate: booking & payment actions require an account first.
   function requireAuthThen(action) {
@@ -575,6 +576,11 @@
   function openAuth(mode) {
     closeMenu();
     var m = el('auth-modal'); if (!m) return;
+    pendingAuthEmail = null;
+    el('auth-otp-form').hidden = true;
+    el('auth-form').hidden = false;
+    el('auth-toggle-wrap').hidden = false;
+    el('auth-guest-note').hidden = false;
     setAuthMode(mode || 'signin');
     m.hidden = false;
     var i = m.querySelector('input[name="email"]'); if (i) i.focus();
@@ -597,19 +603,67 @@
       btn.textContent = old; btn.disabled = false;
       if (!r.ok) { err.textContent = r.error || 'Something went wrong.'; err.hidden = false; return; }
       if (authMode === 'signup' && r.needsConfirm) {
-        ok.textContent = 'Account created — check your email to confirm, then sign in to continue.';
-        ok.hidden = false; setAuthMode('signin'); af.reset();
-        pendingAction = null;
+        pendingAuthEmail = email;
+        af.reset();
+        openAuthOtp();
         return;
       }
-      authUser = r.user || (B() ? await B().currentUser() : null);
-      authIsAdmin = !!r.isAdmin;   // r.isAdmin came from the server is_admin() check
-      renderAuthSlot(); prefillFromUser();
-      if (authIsAdmin) { window.location.href = 'dashboard.html'; return; }
-      closeAuth();
-      if (pendingAction) { var act = pendingAction; pendingAction = null; act(); }
-      else showToast('Signed in — welcome.');
+      afterAuthSuccess(r);
     });
+    initAuthOtp();
+  }
+
+  function afterAuthSuccess(r) {
+    authUser = r.user || null;
+    authIsAdmin = !!r.isAdmin;   // r.isAdmin came from the server is_admin() check
+    renderAuthSlot(); prefillFromUser();
+    if (authIsAdmin) { window.location.href = 'dashboard.html'; return; }
+    closeAuth();
+    if (pendingAction) { var act = pendingAction; pendingAction = null; act(); }
+    else showToast('Signed in — welcome.');
+  }
+
+  /* ---------- Signup confirmation (email OTP) ---------- */
+  function openAuthOtp() {
+    el('auth-form').hidden = true;
+    el('auth-toggle-wrap').hidden = true;
+    el('auth-guest-note').hidden = true;
+    el('auth-otp-email').textContent = pendingAuthEmail;
+    el('auth-title').textContent = 'Confirm your email';
+    el('auth-otp-form').hidden = false;
+    var i = el('auth-otp-form').querySelector('input[name="otp"]'); if (i) i.focus();
+  }
+  function closeAuthOtp() {
+    el('auth-otp-form').hidden = true;
+    el('auth-form').hidden = false;
+    el('auth-toggle-wrap').hidden = false;
+    el('auth-guest-note').hidden = false;
+    setAuthMode('signin');
+  }
+  function initAuthOtp() {
+    var f = el('auth-otp-form');
+    if (!f || f.__wired) return; f.__wired = true;
+    f.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var err = el('auth-otp-error'); err.hidden = true;
+      var btn = el('auth-otp-submit'); var old = btn.textContent; btn.textContent = 'Verifying…'; btn.disabled = true;
+      var r = await B().confirmSignUp(pendingAuthEmail, f.otp.value.trim());
+      btn.textContent = old; btn.disabled = false;
+      if (!r.ok) { err.textContent = r.error || 'That code is incorrect or has expired.'; err.hidden = false; return; }
+      f.reset();
+      pendingAuthEmail = null;
+      f.hidden = true;
+      afterAuthSuccess(r);
+    });
+    el('auth-otp-resend').addEventListener('click', async function () {
+      var btn = el('auth-otp-resend'); var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
+      var r = await B().resendSignUpCode(pendingAuthEmail);
+      btn.textContent = old; btn.disabled = false;
+      var err = el('auth-otp-error');
+      err.textContent = r.ok ? 'A new code has been sent.' : (r.error || 'Could not resend the code.');
+      err.hidden = false;
+    });
+    el('auth-otp-back').addEventListener('click', function () { pendingAuthEmail = null; closeAuthOtp(); });
   }
 
   /* ---------- Toast + return-from-Stripe ---------- */
