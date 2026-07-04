@@ -470,7 +470,7 @@
     var file = fileInput && fileInput.files[0];
     var btn = form.querySelector('button[type="submit"]');
     var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
-    var r = B() ? await B().submitEnquiry(data, file) : { ok: true, demo: true };
+    var r = B() ? await B().submitEnquiry(data, file, { skipCalendarSync: !!PLAN_ID[data.interest] }) : { ok: true, demo: true };
     if (!r.ok) {
       btn.textContent = old; btn.disabled = false;
       showToast('Sorry — could not send your enquiry. ' + (r.error || ''));

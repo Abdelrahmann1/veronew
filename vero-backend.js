@@ -22,7 +22,7 @@
 
   /* ---------- Enquiries / appointments / webinar signups ---------- */
   // Stored in one `submissions` table; `type` separates them for the dashboard.
-  async function submitEnquiry(data, file) {
+  async function submitEnquiry(data, file, opts) {
     if (!client) return { ok: true, demo: true };
     try {
       var cv_path = null;
@@ -53,7 +53,10 @@
         user_id: u ? u.id : null
       };
       var ins = await client.from('submissions').insert([row]);
-      if (!ins.error && row.booking_at) {
+      // Paid bookings get their calendar event + Meet link once, after payment
+      // succeeds (stripe-webhook) — syncing here too would create a duplicate
+      // event and a second, different Meet-link email for the same booking.
+      if (!ins.error && row.booking_at && !(opts && opts.skipCalendarSync)) {
         syncCalendar({
           summary: 'GTR booking — ' + (row.name || 'Client') + (row.interest ? ' (' + row.interest + ')' : ''),
           description: 'Enquiry booking\nClient: ' + (row.name || '') + '\nEmail: ' + (row.email || '') +
