@@ -25,7 +25,7 @@ const json = (b: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
-    const { userToken, summary, description, startISO, name, email, note } = await req.json();
+    const { userToken, summary, description, startISO, name, note } = await req.json();
 
     // Only a signed-in user may schedule (form bookings are gated behind auth).
     if (!userToken) return json({ error: "Unauthorized" }, 401);
@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
         weekday: "short", day: "2-digit", month: "short", year: "numeric",
         hour: "2-digit", minute: "2-digit",
       });
-      const clientEmail = email || data.user.email;
+      // Always the caller's own verified account email (from the JWT), never
+      // the client-supplied `email` field — otherwise a signed-in user could
+      // redirect someone else's meeting-link email to any address they type.
+      const clientEmail = data.user.email;
       try {
         if (clientEmail) {
           await sendEmail({

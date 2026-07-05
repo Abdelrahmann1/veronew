@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script type="module" src="firebase-init.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -466,7 +467,7 @@
         <span class="footer-tagline">Not legal or immigration advice</span>
       </div>
       <div class="footer-legal">
-        <span>© 2026 GTR by Vero UK. An independent educational programme.</span>
+        <span>© 2026 GTR by Vero UK. An independent educational programme.<br>Vero Official Ltd. Company No. 17308578</span>
         <span>Applicants should always refer to official UK Government guidance and seek regulated immigration advice where required.</span>
         <button class="footer-mini" data-auth-open>Staff login</button>
       </div>
@@ -494,10 +495,14 @@
       <button class="link-btn" id="auth-toggle" data-auth-toggle>Create an account</button>
     </p>
     <p class="modal__note" id="auth-guest-note">Creating an account lets you track your enquiry and payments. You can also enquire or pay as a guest.</p>
+    <p class="modal__note" id="auth-have-code-wrap">
+      <button type="button" class="link-btn" id="auth-have-code">Have a confirmation code?</button>
+    </p>
 
-    <!-- Shown after signup: enter the code emailed to the new account -->
+    <!-- Shown after signup (or via "Have a confirmation code?"): enter the code emailed to the account -->
     <form class="form" id="auth-otp-form" hidden>
-      <p class="modal__note">Enter the 6-digit code we emailed to <strong id="auth-otp-email"></strong>.</p>
+      <p class="modal__note">Enter the 6-digit code emailed to you to confirm your account.</p>
+      <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email"/></label>
       <label class="field"><span>Code</span><input name="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code"/></label>
       <div class="auth-error" id="auth-otp-error" hidden></div>
       <button type="submit" class="btn btn--lg btn--dark btn--block" id="auth-otp-submit">Verify &amp; continue</button>

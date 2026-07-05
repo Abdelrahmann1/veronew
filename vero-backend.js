@@ -63,7 +63,6 @@
             '\nInterest: ' + (row.interest || '') + '\nCountry: ' + (row.country || ''),
           startISO: row.booking_at,
           name: row.name,
-          email: row.email,
           note: row.interest
         });
       }
@@ -85,7 +84,7 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY },
         body: JSON.stringify({
           userToken: token, summary: details.summary, description: details.description, startISO: details.startISO,
-          name: details.name, email: details.email, note: details.note
+          name: details.name, note: details.note
         })
       });
     } catch (e) { /* non-fatal */ }

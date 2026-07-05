@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="dashboard.css">
+<script type="module" src="firebase-init.js"></script>
 </head>
 <body class="dash">
 
@@ -32,10 +33,14 @@
         <span id="gate-toggle-text">New here?</span>
         <button class="link-btn" id="gate-toggle" data-gate-toggle>Create an account</button>
       </p>
+      <p class="modal__note" id="gate-have-code-wrap">
+        <button type="button" class="link-btn" id="gate-have-code">Have a confirmation code?</button>
+      </p>
 
-      <!-- Shown after signup: enter the code emailed to the new account -->
+      <!-- Shown after signup (or via "Have a confirmation code?"): enter the code emailed to the account -->
       <form class="form" id="gate-otp-form" hidden>
-        <p class="modal__note">Enter the 6-digit code we emailed to <strong id="gate-otp-email"></strong>.</p>
+        <p class="modal__note">Enter the 6-digit code emailed to you to confirm your account.</p>
+        <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email"/></label>
         <label class="field"><span>Code</span><input name="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code"/></label>
         <div class="auth-error" id="gate-otp-error" hidden></div>
         <button type="submit" class="btn btn--lg btn--dark btn--block" id="gate-otp-submit">Verify &amp; continue</button>

@@ -526,7 +526,6 @@
   var authIsAdmin = false;   // mirrors the server-side is_admin() result for UI only
   var authMode = 'signin';
   var pendingAction = null;   // runs after a logged-out user signs up/in via a gated action
-  var pendingAuthEmail = null; // email awaiting OTP confirmation after signup
 
   // Gate: booking & payment actions require an account first.
   function requireAuthThen(action) {
@@ -547,10 +546,21 @@
     }
   }
 
+  // Signed-in clients can't retype the email — otherwise they could redirect
+  // another person's booking confirmation / meeting-link email to any address
+  // they type. Guests (no account) keep a free-text field, since there's no
+  // account identity to protect and they're providing their own contact info.
   function prefillFromUser() {
-    if (!authUser) return;
     var em = document.querySelector('#contact-form input[name="email"]');
-    if (em && !em.value) em.value = authUser.email;
+    if (!em) return;
+    if (authUser) {
+      em.value = authUser.email;
+      em.readOnly = true;
+      em.title = 'Signed in as ' + authUser.email;
+    } else {
+      em.readOnly = false;
+      em.title = '';
+    }
   }
 
   async function refreshAuth() {
@@ -576,11 +586,11 @@
   function openAuth(mode) {
     closeMenu();
     var m = el('auth-modal'); if (!m) return;
-    pendingAuthEmail = null;
     el('auth-otp-form').hidden = true;
     el('auth-form').hidden = false;
     el('auth-toggle-wrap').hidden = false;
     el('auth-guest-note').hidden = false;
+    el('auth-have-code-wrap').hidden = false;
     setAuthMode(mode || 'signin');
     m.hidden = false;
     var i = m.querySelector('input[name="email"]'); if (i) i.focus();
@@ -603,13 +613,14 @@
       btn.textContent = old; btn.disabled = false;
       if (!r.ok) { err.textContent = r.error || 'Something went wrong.'; err.hidden = false; return; }
       if (authMode === 'signup' && r.needsConfirm) {
-        pendingAuthEmail = email;
+        var signedUpEmail = email;
         af.reset();
-        openAuthOtp();
+        openAuthOtp(signedUpEmail);
         return;
       }
       afterAuthSuccess(r);
     });
+    el('auth-have-code').addEventListener('click', function () { openAuthOtp(); });
     initAuthOtp();
   }
 
@@ -624,20 +635,26 @@
   }
 
   /* ---------- Signup confirmation (email OTP) ---------- */
-  function openAuthOtp() {
+  // prefillEmail is set right after a fresh signup; omitted when the user
+  // clicks "Have a confirmation code?" to confirm from a later visit.
+  function openAuthOtp(prefillEmail) {
     el('auth-form').hidden = true;
     el('auth-toggle-wrap').hidden = true;
     el('auth-guest-note').hidden = true;
-    el('auth-otp-email').textContent = pendingAuthEmail;
+    el('auth-have-code-wrap').hidden = true;
+    var f = el('auth-otp-form');
+    f.email.value = prefillEmail || '';
     el('auth-title').textContent = 'Confirm your email';
-    el('auth-otp-form').hidden = false;
-    var i = el('auth-otp-form').querySelector('input[name="otp"]'); if (i) i.focus();
+    f.hidden = false;
+    var i = prefillEmail ? f.querySelector('input[name="otp"]') : f.email;
+    if (i) i.focus();
   }
   function closeAuthOtp() {
     el('auth-otp-form').hidden = true;
     el('auth-form').hidden = false;
     el('auth-toggle-wrap').hidden = false;
     el('auth-guest-note').hidden = false;
+    el('auth-have-code-wrap').hidden = false;
     setAuthMode('signin');
   }
   function initAuthOtp() {
@@ -647,23 +664,23 @@
       e.preventDefault();
       var err = el('auth-otp-error'); err.hidden = true;
       var btn = el('auth-otp-submit'); var old = btn.textContent; btn.textContent = 'Verifying…'; btn.disabled = true;
-      var r = await B().confirmSignUp(pendingAuthEmail, f.otp.value.trim());
+      var r = await B().confirmSignUp(f.email.value, f.otp.value.trim());
       btn.textContent = old; btn.disabled = false;
       if (!r.ok) { err.textContent = r.error || 'That code is incorrect or has expired.'; err.hidden = false; return; }
       f.reset();
-      pendingAuthEmail = null;
       f.hidden = true;
       afterAuthSuccess(r);
     });
     el('auth-otp-resend').addEventListener('click', async function () {
+      if (!f.email.value) { el('auth-otp-error').textContent = 'Enter your email first.'; el('auth-otp-error').hidden = false; return; }
       var btn = el('auth-otp-resend'); var old = btn.textContent; btn.textContent = 'Sending…'; btn.disabled = true;
-      var r = await B().resendSignUpCode(pendingAuthEmail);
+      var r = await B().resendSignUpCode(f.email.value);
       btn.textContent = old; btn.disabled = false;
       var err = el('auth-otp-error');
       err.textContent = r.ok ? 'A new code has been sent.' : (r.error || 'Could not resend the code.');
       err.hidden = false;
     });
-    el('auth-otp-back').addEventListener('click', function () { pendingAuthEmail = null; closeAuthOtp(); });
+    el('auth-otp-back').addEventListener('click', function () { closeAuthOtp(); });
   }
 
   /* ---------- Toast + return-from-Stripe ---------- */
@@ -698,7 +715,15 @@ function initParams() {
     if (e.target.closest('[data-auth-close]')) { closeAuth(); return; }
     if (e.target.closest('[data-auth-toggle]')) { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); return; }
     if (e.target.closest('[data-toast-close]')) { var t = el('pay-toast'); if (t) t.hidden = true; return; }
-    if (e.target.closest('[data-signout]')) { if (B()) B().signOut(); authUser = null; authIsAdmin = false; renderAuthSlot(); showToast('Signed out.'); return; }
+    if (e.target.closest('[data-signout]')) {
+      if (B()) B().signOut();
+      authUser = null; authIsAdmin = false;
+      renderAuthSlot(); prefillFromUser();
+      var em = document.querySelector('#contact-form input[name="email"]');
+      if (em) em.value = '';
+      showToast('Signed out.');
+      return;
+    }
     var pay = e.target.closest('[data-checkout]');
     if (pay) {
       var plan = pay.getAttribute('data-checkout');
