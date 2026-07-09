@@ -90,6 +90,25 @@
     } catch (e) { /* non-fatal */ }
   }
 
+  // Which fixed slots are actually free on the owner's real calendar for a
+  // given day. Returns { ok, slots: {"06:00": true, ...} } — if the check
+  // fails (calendar not configured, network error), returns ok:false so the
+  // caller can fall back to showing every slot as available.
+  async function checkAvailability(dateStr) {
+    if (!configured) return { ok: false };
+    try {
+      var res = await fetch(cfg.SUPABASE_URL + '/functions/v1/get-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY },
+        body: JSON.stringify({ date: dateStr })
+      });
+      var j = await res.json();
+      return j && j.slots ? { ok: true, slots: j.slots } : { ok: false };
+    } catch (e) {
+      return { ok: false };
+    }
+  }
+
   /* ---------- Stripe Checkout ---------- */
   // The plan id is resolved to an amount SERVER-SIDE in the edge function,
   // so the browser can never tamper with the price.
@@ -232,6 +251,7 @@
     setSubmissionStatus: setSubmissionStatus,
     cancelBooking: cancelBooking,
     cancelPayment: cancelPayment,
-    cvUrl: cvUrl
+    cvUrl: cvUrl,
+    checkAvailability: checkAvailability
   };
 })();

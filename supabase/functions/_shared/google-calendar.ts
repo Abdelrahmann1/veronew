@@ -110,3 +110,29 @@ export async function createCalendarEvent(ev: CalendarEvent): Promise<CalendarEv
   const data = await res.json();
   return { meetLink: data.hangoutLink ?? null };
 }
+
+export interface BusyRange {
+  start: string;
+  end: string;
+}
+
+// Real busy blocks on the owner's calendar for a time range — used to only
+// offer booking slots that are actually free (see get-availability).
+export async function getFreeBusy(timeMinISO: string, timeMaxISO: string): Promise<BusyRange[]> {
+  const calendarId = Deno.env.get("GOOGLE_CALENDAR_ID") ?? "";
+  if (!calendarId) throw new Error("GOOGLE_CALENDAR_ID is not set");
+  const token = await getAccessToken();
+
+  const res = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ timeMin: timeMinISO, timeMax: timeMaxISO, items: [{ id: calendarId }] }),
+  });
+  if (!res.ok) throw new Error("FreeBusy query failed (" + res.status + "): " + (await res.text()));
+  const data = await res.json();
+  const cal = data.calendars && data.calendars[calendarId];
+  if (cal && cal.errors && cal.errors.length) {
+    throw new Error("FreeBusy error for " + calendarId + ": " + JSON.stringify(cal.errors));
+  }
+  return (cal && cal.busy) || [];
+}

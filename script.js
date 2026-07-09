@@ -359,6 +359,9 @@
   var bookingView = null;    // first-of-month Date currently shown
   var bookingDay = null;     // selected day (Date at midnight)
   var bookingISO = null;     // selected full datetime (ISO string)
+  var bookingAvail = null;         // {"06:00": true/false, ...} for the selected day, or null = unknown/loading
+  var bookingAvailLoading = false;
+  var bookingAvailSeq = 0;         // guards against a stale response overwriting a newer day's result
   var SLOT_GROUPS = [
     { label: 'Morning', times: ['06:00', '06:30', '07:00', '07:30', '08:00'] },
     { label: 'Evening', times: ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30'] }
@@ -388,11 +391,32 @@
     bookingView = new Date(base.getFullYear(), base.getMonth(), 1);
     bookingISO = presetISO || null;
     bookingDay = presetISO ? new Date(base.getFullYear(), base.getMonth(), base.getDate()) : null;
+    bookingAvail = null; bookingAvailLoading = false;
     renderBookingCal(); renderBookingSlots(); updateBookingSummary();
     var c = el('booking-confirm'); if (c) c.disabled = !bookingISO;
     var m = el('booking-modal'); if (m) m.hidden = false;
+    if (bookingDay) loadBookingAvailability();
   }
   function closeBooking() { var m = el('booking-modal'); if (m) m.hidden = true; }
+
+  // Checks the owner's real Google Calendar for which fixed slots are free
+  // on the selected day. Fails open (leaves bookingAvail as null, meaning
+  // "show everything as available") if the check can't complete — a calendar
+  // hiccup should never block someone from booking.
+  async function loadBookingAvailability() {
+    if (!bookingDay || !B() || !B().configured) return;
+    var seq = ++bookingAvailSeq;
+    bookingAvail = null; bookingAvailLoading = true;
+    renderBookingSlots();
+    var dateStr = bookingDay.getFullYear() + '-' +
+      String(bookingDay.getMonth() + 1).padStart(2, '0') + '-' +
+      String(bookingDay.getDate()).padStart(2, '0');
+    var r = await B().checkAvailability(dateStr);
+    if (seq !== bookingAvailSeq) return; // a newer day was selected meanwhile
+    bookingAvailLoading = false;
+    bookingAvail = (r && r.ok) ? r.slots : null;
+    renderBookingSlots();
+  }
 
   function renderBookingCal() {
     var cal = el('booking-cal'); if (!cal || !bookingView) return;
@@ -422,18 +446,25 @@
   function renderBookingSlots() {
     var box = el('booking-slots'); if (!box) return;
     if (!bookingDay) { box.innerHTML = '<div class="slots-hint">Pick a day to see available times.</div>'; return; }
+    if (bookingAvailLoading) { box.innerHTML = '<div class="slots-hint">Checking availability…</div>'; return; }
     var now = new Date();
     var isToday = sameDay(bookingDay, startOfToday());
-    box.innerHTML = SLOT_GROUPS.map(function (g) {
+    var anyFree = false;
+    var html = SLOT_GROUPS.map(function (g) {
       var btns = g.times.map(function (t) {
         var p = t.split(':');
         var iso = ukSlotToISO(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +p[0], +p[1]);
         var passed = isToday && new Date(iso).getTime() <= now.getTime();
+        // bookingAvail === null means the check couldn't complete — fail
+        // open (treat as free) rather than block booking over a calendar hiccup.
+        var busy = bookingAvail && bookingAvail[t] === false;
+        if (!passed && !busy) anyFree = true;
         var sel = bookingISO === iso;
-        return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
+        return '<button type="button" class="slot' + (sel ? ' is-selected' : '') + '"' + (passed || busy ? ' disabled' : '') + ' data-slot="' + t + '">' + t + '</button>';
       }).join('');
       return '<div class="slots-group"><div class="slots-group__label">' + g.label + '</div><div class="slots-grid">' + btns + '</div></div>';
     }).join('');
+    box.innerHTML = anyFree ? html : html + '<div class="slots-hint">No free times this day — try another day.</div>';
   }
 
   function updateBookingSummary() {
@@ -706,7 +737,7 @@ function initParams() {
     if (e.target.closest('[data-cal-prev]')) { bookingView.setMonth(bookingView.getMonth() - 1); renderBookingCal(); return; }
     if (e.target.closest('[data-cal-next]')) { bookingView.setMonth(bookingView.getMonth() + 1); renderBookingCal(); return; }
     var calDay = e.target.closest('[data-cal-day]');
-    if (calDay) { bookingDay = new Date(bookingView.getFullYear(), bookingView.getMonth(), +calDay.getAttribute('data-cal-day')); bookingISO = null; renderBookingCal(); renderBookingSlots(); updateBookingSummary(); var cc = el('booking-confirm'); if (cc) cc.disabled = true; return; }
+    if (calDay) { bookingDay = new Date(bookingView.getFullYear(), bookingView.getMonth(), +calDay.getAttribute('data-cal-day')); bookingISO = null; bookingAvail = null; renderBookingCal(); renderBookingSlots(); updateBookingSummary(); var cc = el('booking-confirm'); if (cc) cc.disabled = true; loadBookingAvailability(); return; }
     var slotBtn = e.target.closest('[data-slot]');
     if (slotBtn) { var sp = slotBtn.getAttribute('data-slot').split(':'); bookingISO = ukSlotToISO(bookingDay.getFullYear(), bookingDay.getMonth(), bookingDay.getDate(), +sp[0], +sp[1]); renderBookingSlots(); updateBookingSummary(); var cf = el('booking-confirm'); if (cf) cf.disabled = false; return; }
     if (e.target.closest('#booking-confirm')) { if (!bookingISO) return; var cb = bookingCb; bookingCb = null; closeBooking(); if (cb) cb(bookingISO); return; }
